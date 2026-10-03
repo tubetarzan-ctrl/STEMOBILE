@@ -18,7 +18,7 @@ export default async function WebsiteManager({ searchParams }: { searchParams: P
     sb.from("page_sections").select("id, type, sort, visible, draft, published, starts_at, ends_at, deleted_at, updated_at").eq("page_id", page.id).order("sort"),
     sb.from("content_versions").select("id, note, published_at").eq("page_id", page.id).order("published_at", { ascending: false }).limit(10),
     sb.from("hero_settings").select("mode").maybeSingle(),
-    sb.from("media_assets").select("id, source, url, poster, captions").contains("placements", ["reel_strip"]).order("sort"),
+    sb.from("media_assets").select("id, type, source, url, poster, captions").contains("placements", ["reel_strip"]).order("sort"),
   ]);
   const live = (sections ?? []).filter((s) => !s.deleted_at);
   const trash = (sections ?? []).filter((s) => s.deleted_at);

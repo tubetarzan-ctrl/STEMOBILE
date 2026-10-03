@@ -63,7 +63,9 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
     setQueued(await db.queue.count());
   }, []);
   useEffect(() => { loadCatalog(); }, [loadCatalog]);
-  useEffect(() => { if (session) posDb().meta.put({ key: "session", value: session }); else posDb().meta.get("session").then((m) => m?.value && setSession(m.value as string)); }, [session]);
+  // Online, the server's list of open drawers is the truth (a closed day auto-closes
+  // drawers); the cached session is only reused when the POS starts offline.
+  useEffect(() => { if (session) posDb().meta.put({ key: "session", value: session }); else if (!navigator.onLine) posDb().meta.get("session").then((m) => m?.value && setSession(m.value as string)); }, [session]);
 
   // --- sync queue (in order, idempotent; failures never block later sales) --------------
   const sync = useCallback(async () => {

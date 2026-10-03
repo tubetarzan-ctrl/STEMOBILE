@@ -236,9 +236,9 @@ export const getAnnouncement = cache(async (): Promise<{ text_en: string; text_u
 });
 
 export const getReels = cache(async () => {
-  if (!hasSupabase) return [] as { id: string; source: string; url: string; poster: string | null; external_id: string | null; captions: string | null }[];
-  const { data } = await supabasePublic().from("media_assets").select("id, source, url, poster, external_id, captions")
-    .contains("placements", ["reel_strip"]).order("sort").limit(12);
+  if (!hasSupabase) return [] as { id: string; type: string; source: string; url: string; poster: string | null; external_id: string | null; captions: string | null }[];
+  const { data } = await supabasePublic().from("media_assets").select("id, type, source, url, poster, external_id, captions")
+    .contains("placements", ["reel_strip"]).order("sort").limit(24);
   return data ?? [];
 });
 

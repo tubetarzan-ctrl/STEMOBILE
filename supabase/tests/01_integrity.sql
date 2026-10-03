@@ -98,11 +98,18 @@ begin
   end;
 end $$;
 
--- 8. Closed days are locked.
+-- 8. A closed day reopens when something posts into it; a closed month is locked.
 do $$
+declare v_day date;
 begin
+  select date into v_day from public.business_days where status <> 'open' order by date limit 1;
+  if v_day is not null then
+    perform public._post_journal(v_day, 'late', 'test', null, '[{"account":10100,"debit":100},{"account":40100,"credit":100}]');
+    if (select status from public.business_days where date = v_day) <> 'open' then raise exception 'closed day did not reopen'; end if;
+  end if;
+  insert into public.accounting_periods (kind, starts_on, ends_on, status) values ('month', '2020-01-01', '2020-01-31', 'closed');
   begin
-    perform public._post_journal(public.business_date() - 3, 'late', 'test', null,
+    perform public._post_journal('2020-01-15', 'late', 'test', null,
       '[{"account":10100,"debit":100},{"account":40100,"credit":100}]');
     raise exception 'expected period_locked';
   exception when others then

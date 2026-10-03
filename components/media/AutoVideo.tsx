@@ -2,13 +2,17 @@
 // Muted-autoplay video with our own sound / volume / pause controls (§5.21–5.22).
 // - Uploaded MP4: <video autoplay muted loop playsinline>
 // - YouTube: privacy-enhanced iframe, controlled via postMessage (no API script)
+// - TikTok / Facebook: official players with autoplay (muted); mounted only while
+//   on screen, so leaving the screen stops them
+// - Instagram: official embed (shows its own thumbnail; Instagram blocks autoplay)
+// - Photo posts: plain image
 // - Plays only while on screen; pauses when hidden. Only one plays at a time.
 // - Save-Data / slow network / reduced motion: poster + play button, no autoplay.
 import { useEffect, useRef, useState } from "react";
 import { Pause, Play, Volume2, VolumeX } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type Source = { source: "upload" | "youtube" | "instagram"; url: string; external_id?: string | null; poster?: string | null; captions?: string | null };
+type Source = { source: "upload" | "youtube" | "instagram" | "tiktok" | "facebook"; type?: string; url: string; external_id?: string | null; poster?: string | null; captions?: string | null };
 
 let current: { pause: () => void } | null = null; // one video at a time
 const VOL_KEY = "st_video_volume";
@@ -37,6 +41,7 @@ export function AutoVideo({ src, className, fit = "cover", controls = true, roun
   const [playing, setPlaying] = useState(false);
   const [muted, setMuted] = useState(true);
   const [loaded, setLoaded] = useState(false);
+  const [inView, setInView] = useState(false);
   const ytId = src.source === "youtube" ? src.external_id || youtubeId(src.url) : null;
 
   useEffect(() => setLite(prefersLite()), []);
@@ -55,7 +60,9 @@ export function AutoVideo({ src, className, fit = "cover", controls = true, roun
     const el = wrap.current;
     if (!el) return;
     const io = new IntersectionObserver(([e]) => {
-      if (e.isIntersecting && e.intersectionRatio > 0.5) { setStarted(true); api.current.play(); } else if (started) api.current.pause();
+      const on = e.isIntersecting && e.intersectionRatio > 0.5;
+      setInView(on);
+      if (on) { setStarted(true); api.current.play(); } else if (started) api.current.pause();
     }, { threshold: [0, 0.5, 1] });
     io.observe(el);
     const vis = () => document.hidden && api.current.pause();
@@ -76,16 +83,36 @@ export function AutoVideo({ src, className, fit = "cover", controls = true, roun
     if (video.current) video.current.volume = v; else yt("setVolume", [Math.round(v * 100)]);
   };
 
-  if (src.source === "instagram") {
-    // Instagram embeds cannot autoplay: poster + link (staff should upload the reel file instead).
+  if (src.type === "image") {
     return (
-      <a href={src.url} target="_blank" rel="noopener" className={cn("relative block overflow-hidden bg-surface-2", rounded && "rounded-2xl", className)}>
+      <div className={cn("relative overflow-hidden bg-surface-2", rounded && "rounded-2xl", className)}>
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        {src.poster && <img src={src.poster} alt={src.captions ?? ""} className="size-full object-cover" />}
-        <span className="absolute inset-0 grid place-items-center"><span className="btn btn-ghost btn-sm bg-surface-1/80"><Play className="size-4" />View on Instagram</span></span>
-      </a>
+        <img src={src.url} alt={src.captions ?? ""} loading="lazy" className={cn("size-full", fit === "cover" ? "object-cover" : "object-contain")} />
+        {src.captions && <span className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/70 to-transparent p-3 pt-8 text-xs text-white">{src.captions}</span>}
+      </div>
     );
   }
+
+  if (src.source === "instagram") {
+    const kind = /\/reels?\//.test(src.url) ? "reel" : "p";
+    return (
+      <div className={cn("relative overflow-hidden bg-surface-2", rounded && "rounded-2xl", className)}>
+        {src.external_id ? (
+          <iframe title={src.captions ?? "Instagram post"} src={`https://www.instagram.com/${kind}/${src.external_id}/embed/`} loading="lazy"
+            allow="autoplay; encrypted-media" className="absolute inset-0 size-full border-0 bg-white" />
+        ) : (
+          <a href={src.url} target="_blank" rel="noopener" className="absolute inset-0 grid place-items-center"><span className="btn btn-ghost btn-sm"><Play className="size-4" />View on Instagram</span></a>
+        )}
+      </div>
+    );
+  }
+
+  const embed =
+    src.source === "tiktok" && src.external_id
+      ? `https://www.tiktok.com/player/v1/${src.external_id}?autoplay=1&loop=1&controls=1&progress_bar=0&music_info=0&description=0&rel=0&native_context_menu=0&closed_caption=0`
+      : src.source === "facebook"
+        ? `https://www.facebook.com/plugins/${/\/(videos|reel|watch)|fb\.watch/.test(src.url) ? "video" : "post"}.php?href=${encodeURIComponent(src.url)}&show_text=false&autoplay=true&mute=1`
+        : null;
 
   return (
     <div ref={wrap} className={cn("group relative overflow-hidden bg-surface-2", rounded && "rounded-2xl", className)}>
@@ -106,6 +133,17 @@ export function AutoVideo({ src, className, fit = "cover", controls = true, roun
           aria-label={src.captions ?? "Video"}
           className={cn("absolute inset-0 size-full transition-opacity duration-700", fit === "cover" ? "object-cover" : "object-contain", loaded ? "opacity-100" : "opacity-0")}
         />
+      ) : embed ? (
+        (inView || fit === "contain") && (
+          <iframe
+            title={src.captions ?? `${src.source} video`}
+            src={embed}
+            allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+            loading="lazy"
+            onLoad={() => setLoaded(true)}
+            className="absolute inset-0 size-full border-0"
+          />
+        )
       ) : ytId ? (
         <iframe
           ref={frame}
@@ -124,7 +162,7 @@ export function AutoVideo({ src, className, fit = "cover", controls = true, roun
         </button>
       )}
 
-      {controls && started && (
+      {controls && started && !embed && (
         <div className="absolute bottom-3 right-3 flex items-center gap-1.5 rounded-full bg-black/55 p-1 backdrop-blur">
           <button type="button" onClick={() => (playing ? api.current.pause() : api.current.play())} className="grid size-9 place-items-center rounded-full text-white hover:bg-white/10" aria-label={playing ? "Pause video" : "Play video"}>
             {playing ? <Pause className="size-4" /> : <Play className="size-4" />}

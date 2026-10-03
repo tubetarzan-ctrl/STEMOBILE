@@ -2,7 +2,7 @@
 import { useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, Copy, Eye, EyeOff, Pencil, RotateCcw, Trash2, Upload } from "lucide-react";
 import {
-  addReelAction, addSectionAction, deleteSectionAction, duplicateSectionAction, publishPageAction, reorderSectionsAction, rollbackAction,
+  addSocialAction, moveSocialAction, removeSocialAction, addSectionAction, deleteSectionAction, duplicateSectionAction, publishPageAction, reorderSectionsAction, rollbackAction,
   saveSectionAction, setHeroAction,
 } from "./actions";
 import { limitFor } from "@/lib/cms/sections";
@@ -199,29 +199,82 @@ export function HeroMediaPanel({ mode }: { mode: string }) {
   );
 }
 
-export function ReelsPanel({ reels }: { reels: { id: string; source: string; url: string; poster: string | null; captions: string | null }[] }) {
-  const [url, setUrl] = useState("");
+/** First frame (at ~1s) of a local video file as a WebP poster. */
+async function videoPoster(file: File): Promise<File | null> {
+  return new Promise((resolve) => {
+    const v = document.createElement("video");
+    v.muted = true; v.playsInline = true; v.preload = "auto";
+    v.src = URL.createObjectURL(file);
+    v.onloadeddata = () => { v.currentTime = Math.min(1, (v.duration || 2) / 2); };
+    v.onseeked = () => {
+      const c = document.createElement("canvas");
+      c.width = v.videoWidth; c.height = v.videoHeight;
+      c.getContext("2d")!.drawImage(v, 0, 0);
+      c.toBlob((b) => { URL.revokeObjectURL(v.src); resolve(b ? new File([b], "poster.webp", { type: "image/webp" }) : null); }, "image/webp", 0.8);
+    };
+    v.onerror = () => resolve(null);
+  });
+}
+
+type SocialItem = { id: string; source: string; url: string; poster: string | null; captions: string | null; type?: string };
+
+export function ReelsPanel({ reels }: { reels: SocialItem[] }) {
+  const [link, setLink] = useState("");
   const [cap, setCap] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const { pending, msg, act } = useAct();
   const { startUpload, isUploading } = useUploadThing("reel");
-  const source = /youtu/.test(url) ? "youtube" : /instagram\.com/.test(url) ? "instagram" : "upload";
+  const { startUpload: startImage, isUploading: imgUploading } = useUploadThing("cmsImage");
   return (
     <section className="card space-y-3 p-5">
-      <h2 className="font-medium">Video & reels ({reels.length})</h2>
-      <p className="text-xs text-ink-3">Paste a YouTube / Shorts link (autoplays muted) or upload the reel file. Instagram links can&apos;t autoplay — upload the file instead.</p>
+      <h2 className="font-medium">Social videos &amp; posts ({reels.length})</h2>
+      <p className="text-xs text-ink-3">
+        Shows on the homepage in the <b>&quot;From the bench&quot;</b> strip. Paste a link from YouTube, TikTok, Instagram or Facebook, or upload your own video / photo.
+        Uploaded videos, YouTube and TikTok autoplay (muted) with an automatic thumbnail. Instagram and Facebook show their own player — for guaranteed autoplay, upload the video file.
+      </p>
       <div className="flex gap-2">
-        <input value={url} onChange={(e) => setUrl(e.target.value)} className="input" placeholder="https://youtube.com/shorts/… or upload" />
-        <label className="btn btn-ghost btn-sm cursor-pointer"><Upload className="size-4" />{isUploading ? "…" : "Upload"}
-          <input type="file" accept="video/*" className="sr-only" onChange={async (e) => { const f = e.target.files?.[0]; if (!f) return; if ((await videoDuration(f)) > 61) return setErr("Reels must be ≤ 60 s"); const r = await startUpload([f]); if (r?.[0]) setUrl(r[0].ufsUrl); }} />
+        <input value={link} onChange={(e) => setLink(e.target.value)} className="input" placeholder="https://www.tiktok.com/@startech/video/… or instagram.com/reel/…" />
+        <button className="btn btn-primary btn-sm" disabled={pending || !link} onClick={() => act(async () => { const r = await addSocialAction({ link, captions: cap }); if (r.ok) { setLink(""); setCap(""); } return r; }, "Added — live on the homepage")}>Add link</button>
+      </div>
+      <div className="flex flex-wrap gap-2">
+        <label className="btn btn-ghost btn-sm cursor-pointer"><Upload className="size-4" />{isUploading ? "Uploading video…" : "Upload video (≤ 60 s)"}
+          <input type="file" accept="video/*" className="sr-only" onChange={async (e) => {
+            const f = e.target.files?.[0]; if (!f) return; setErr(null);
+            if ((await videoDuration(f)) > 61) return setErr("Videos must be 60 seconds or shorter.");
+            const poster = await videoPoster(f);
+            const r = await startUpload(poster ? [f, poster] : [f]).catch((x: Error) => { setErr(x.message); return null; });
+            const vid = r?.find((x) => x.type?.startsWith("video") || /\.(mp4|mov|webm)$/i.test(x.name));
+            const img = r?.find((x) => x !== vid);
+            if (vid) act(() => addSocialAction({ upload: { url: vid.ufsUrl, kind: "video", poster: img?.ufsUrl ?? null }, captions: cap }), "Video added");
+            e.target.value = "";
+          }} />
+        </label>
+        <label className="btn btn-ghost btn-sm cursor-pointer"><Upload className="size-4" />{imgUploading ? "Uploading photo…" : "Upload photo post"}
+          <input type="file" accept="image/*" className="sr-only" onChange={async (e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            const r = await startImage([await compressImage(f)]).catch((x: Error) => { setErr(x.message); return null; });
+            if (r?.[0]) act(() => addSocialAction({ upload: { url: r[0].ufsUrl, kind: "image" }, captions: cap }), "Photo added");
+            e.target.value = "";
+          }} />
         </label>
       </div>
-      <input value={cap} onChange={(e) => setCap(e.target.value)} className="input" placeholder="Caption / alt text (accessibility)" />
+      <input value={cap} onChange={(e) => setCap(e.target.value)} className="input" placeholder="Caption (optional) — e.g. iPhone 15 Pro screen replaced in 40 min" />
       {err && <p className="text-sm text-danger">{err}</p>}
-      <button className="btn btn-primary btn-sm" disabled={pending || !url} onClick={() => act(() => addReelAction(source, url, null, cap), "Added to the reel strip")}>Add reel</button>
-      {msg && <span className="ml-3 text-sm">{msg}</span>}
-      <ul className="grid grid-cols-4 gap-2">{reels.map((r) => <li key={r.id} className="aspect-[9/16] overflow-hidden rounded-lg bg-surface-2 text-[10px]">{r.poster ? // eslint-disable-next-line @next/next/no-img-element
-          <img src={r.poster} alt={r.captions ?? ""} className="size-full object-cover" /> : <span className="p-1">{r.source}</span>}</li>)}</ul>
+      {msg && <p className="text-sm">{msg}</p>}
+      <ul className="grid grid-cols-3 gap-2 sm:grid-cols-4">{reels.map((r, i) => (
+        <li key={r.id} className="relative aspect-[9/16] overflow-hidden rounded-lg bg-surface-2 text-[10px]">
+          {r.poster
+            // eslint-disable-next-line @next/next/no-img-element
+            ? <img src={r.poster} alt={r.captions ?? ""} className="size-full object-cover" />
+            : <span className="grid size-full place-items-center p-1 text-center capitalize">{r.source}</span>}
+          <span className="absolute left-1 top-1 rounded bg-black/60 px-1 capitalize text-white">{r.type === "image" ? "photo" : r.source}</span>
+          <div className="absolute inset-x-1 bottom-1 flex justify-between">
+            <button type="button" aria-label="Move earlier" disabled={pending || i === 0} className="rounded bg-black/60 px-1.5 text-white" onClick={() => act(() => moveSocialAction(r.id, -1), "Moved")}>◀</button>
+            <button type="button" aria-label="Remove" disabled={pending} className="rounded bg-danger px-1.5 text-white" onClick={() => confirm("Remove from the website?") && act(() => removeSocialAction(r.id), "Removed")}>✕</button>
+            <button type="button" aria-label="Move later" disabled={pending || i === reels.length - 1} className="rounded bg-black/60 px-1.5 text-white" onClick={() => act(() => moveSocialAction(r.id, 1), "Moved")}>▶</button>
+          </div>
+        </li>
+      ))}</ul>
     </section>
   );
 }

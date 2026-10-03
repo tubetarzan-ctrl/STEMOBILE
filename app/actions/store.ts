@@ -1,4 +1,5 @@
 "use server";
+import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { hasSupabase, supabaseAdmin, supabasePublic } from "@/lib/supabase/server";
 import { getRepairQuote } from "@/lib/data/store";
@@ -191,6 +192,7 @@ export async function submitReviewAction(input: z.infer<typeof ReviewSchema>): P
   });
   if (error) return fail("Could not submit your review.");
   const res = data as { review_id: string; status: string };
+  if (res.status === "published") revalidatePath("/");
   if (r.rating <= 3) await notifyOwner(`⚠️ New ${r.rating}★ review from ${r.name}: ${(r.text ?? "").slice(0, 120)}`).catch(() => {});
   return { ok: true, data: { id: res.review_id, status: res.status } };
 }
