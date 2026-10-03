@@ -410,6 +410,15 @@ begin
   select v.id into v_var2 from public.product_variants v join public.products p on p.id = v.product_id
    where p.slug like '20w-usb-c%' limit 1;
 
+  -- guarantee stock for the demo orders (the random counter sales above may have sold these out)
+  perform public.receive_grn(jsonb_build_object(
+    'supplier_id', (select id from public.suppliers where currency = 'PKR' order by name limit 1),
+    'location_id', public.location_id('COUNTER'), 'currency', 'PKR', 'fx_rate', 1, 'bill_no', 'SEED-TOPUP',
+    'idempotency_key', 'seed-topup-orders',
+    'lines', jsonb_build_array(
+      jsonb_build_object('variant_id', v_var, 'qty', 10, 'unit_cost_fc', 30000),
+      jsonb_build_object('variant_id', v_var2, 'qty', 10, 'unit_cost_fc', 150000))));
+
   -- COD via courier -> confirmed -> dispatched -> delivered -> remitted
   o := public.place_online_order(jsonb_build_object('idempotency_key', 'seed-ord-1', 'phone', '03011112222', 'name', 'Rizwan Ahmed',
         'city', 'Lahore', 'address', '{"line1":"House 12, Street 4, DHA Phase 5"}', 'payment_method', 'cod', 'delivery_method', 'courier',
