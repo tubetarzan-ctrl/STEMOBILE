@@ -1,0 +1,66 @@
+import { requirePermission, can } from "@/lib/auth/permissions";
+import { supabaseAdmin } from "@/lib/supabase/server";
+import { formatPKR } from "@/lib/money";
+import { PageHead, StatusPill } from "@/components/panel/ui";
+import { ExpenseForm, JournalForm, PeriodTools, ReverseButton } from "./AccountsClient";
+
+export default async function AccountsPage({ searchParams }: { searchParams: Promise<{ source?: string }> }) {
+  const staff = await requirePermission("reports.financial.view", "redirect");
+  const { source } = await searchParams;
+  const sb = supabaseAdmin();
+  let jq = sb.from("journal_entries").select("id, entry_no, entry_date, memo, source_type, source_id, reversal_of, reversed_by, journal_lines(account_code, debit, credit, party_type, accounts(name))").order("entry_no", { ascending: false }).limit(40);
+  if (source) jq = jq.eq("source_type", source);
+  const [{ data: entries }, { data: accounts }, { data: periods }, { data: assets }] = await Promise.all([
+    jq, sb.from("accounts").select("code, name, subtype").eq("is_active", true).order("code"),
+    sb.from("accounting_periods").select("kind, starts_on, ends_on, status").order("starts_on", { ascending: false }).limit(12),
+    sb.from("fixed_assets").select("id, name, cost, acquired_on, life_months, status, depreciation_runs(amount)"),
+  ]);
+  const acc = accounts ?? [];
+
+  return (
+    <div className="space-y-10">
+      <PageHead title="Accounts" sub="Double-entry. Posted journals are immutable — corrections by reversal." />
+      <div className="grid gap-6 xl:grid-cols-2">
+        {can(staff, "accounts.expense") && <ExpenseForm accounts={acc} />}
+        {can(staff, "accounts.journal.create") && <JournalForm accounts={acc} />}
+      </div>
+      {can(staff, "accounts.period.close") && <PeriodTools />}
+
+      <section>
+        <h2 className="mb-3 font-display text-xl font-semibold">Journal</h2>
+        <div className="space-y-2">
+          {(entries ?? []).map((e) => (
+            <details key={e.id} className="card p-4">
+              <summary className="flex cursor-pointer flex-wrap items-center gap-3 text-sm">
+                <span className="font-mono text-ink-3">#{e.entry_no}</span><span className="font-mono">{e.entry_date}</span>
+                <span className="flex-1">{e.memo}</span><span className="badge">{e.source_type}</span>
+                {e.reversed_by && <StatusPill status="reversed" />}{e.reversal_of && <span className="badge text-warn">reversal</span>}
+                <span className="money font-semibold">{formatPKR((e.journal_lines as { debit: number }[]).reduce((a, l) => a + Number(l.debit), 0))}</span>
+              </summary>
+              <table className="table mt-3">
+                <thead><tr><th>Account</th><th>Party</th><th className="num">Debit</th><th className="num">Credit</th></tr></thead>
+                <tbody>{(e.journal_lines as unknown as { account_code: number; debit: number; credit: number; party_type: string | null; accounts: { name: string } }[]).map((l, i) => (
+                  <tr key={i}><td><span className="font-mono text-xs text-ink-3">{l.account_code}</span> {l.accounts.name}</td><td className="text-ink-3">{l.party_type ?? ""}</td><td className="num">{Number(l.debit) ? formatPKR(l.debit) : ""}</td><td className="num">{Number(l.credit) ? formatPKR(l.credit) : ""}</td></tr>
+                ))}</tbody>
+              </table>
+              {can(staff, "accounts.journal.create") && !e.reversed_by && !e.reversal_of && <div className="mt-3"><ReverseButton id={e.id} /></div>}
+            </details>
+          ))}
+        </div>
+      </section>
+
+      <div className="grid gap-6 xl:grid-cols-2">
+        <section className="card p-5">
+          <h2 className="mb-3 font-medium">Periods</h2>
+          <table className="table"><tbody>{(periods ?? []).map((p) => <tr key={`${p.kind}${p.starts_on}`}><td className="capitalize">{p.kind}</td><td className="font-mono">{p.starts_on} → {p.ends_on}</td><td><StatusPill status={p.status} /></td></tr>)}</tbody></table>
+        </section>
+        <section className="card p-5">
+          <h2 className="mb-3 font-medium">Fixed assets</h2>
+          <table className="table"><thead><tr><th>Asset</th><th className="num">Cost</th><th className="num">Depreciated</th><th className="num">Book value</th></tr></thead>
+            <tbody>{(assets ?? []).map((a) => { const dep = (a.depreciation_runs as { amount: number }[]).reduce((x, r) => x + Number(r.amount), 0); return <tr key={a.id}><td>{a.name} <span className="text-xs text-ink-3">{a.life_months}m</span></td><td className="num">{formatPKR(a.cost)}</td><td className="num">{formatPKR(dep)}</td><td className="num font-semibold">{formatPKR(Number(a.cost) - dep)}</td></tr>; })}</tbody>
+          </table>
+        </section>
+      </div>
+    </div>
+  );
+}
