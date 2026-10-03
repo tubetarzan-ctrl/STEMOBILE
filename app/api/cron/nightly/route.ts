@@ -5,11 +5,17 @@ import { notifyOwner } from "@/lib/whatsapp";
 import { syncBusinessProfileReviews } from "@/lib/reviews/google";
 import { businessDate } from "@/lib/time";
 import { formatPKR } from "@/lib/money";
+import { GET as runFrequent } from "../frequent/route";
 
 // 21:00 PKT: stock-alert digest, anomaly watch (owner only), Google reviews sync.
+// DECISION: Vercel Hobby allows daily crons only, so this also runs the "frequent" tasks once a day.
+// Order expiry / COD call-queue already run every 15 min inside the database (pg_cron). For
+// frequent courier polling and instant critical-stock alerts, point a free pinger (e.g. cron-job.org)
+// at /api/cron/frequent with header "Authorization: Bearer <CRON_SECRET>", or upgrade to Vercel Pro.
 export async function GET(req: NextRequest) {
   const denied = cronGuard(req);
   if (denied) return denied;
+  const frequent = await (await runFrequent(req)).json().catch(() => null);
   const sb = supabaseAdmin();
   const today = businessDate();
   const msgs: string[] = [];
@@ -31,5 +37,5 @@ export async function GET(req: NextRequest) {
 
   let synced = 0;
   try { synced = await syncBusinessProfileReviews(); } catch (e) { console.error("[reviews] sync failed", e); }
-  return NextResponse.json({ messages: msgs.length, reviews_synced: synced });
+  return NextResponse.json({ messages: msgs.length, reviews_synced: synced, frequent });
 }
