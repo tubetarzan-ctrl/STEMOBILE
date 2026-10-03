@@ -63,3 +63,12 @@ describe("courier remittance CSV", () => {
     expect(rows).toEqual([{ trackingNo: "MOCK-1", codAmount: 125050, charge: 15000 }, { trackingNo: "MOCK-2", codAmount: 99900, charge: 0 }]);
   });
 });
+
+import { isValidImei } from "@/lib/imei/luhn";
+describe("IMEI validation", () => {
+  it("accepts valid Luhn IMEIs and rejects typos", () => {
+    expect(isValidImei("490154203237518")).toBe(true);
+    expect(isValidImei("490154203237519")).toBe(false);
+    expect(isValidImei("12345")).toBe(false);
+  });
+});
