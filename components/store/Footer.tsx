@@ -60,7 +60,13 @@ export async function Footer() {
         </div>
       </div>
       <div className="border-t border-line">
-        <p className="mx-auto max-w-7xl px-4 py-5 font-mono text-xs text-ink-3">© {new Date().getFullYear()} {biz.name}. Prices in PKR.</p>
+        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-5">
+          <p className="font-mono text-xs text-ink-3">© {new Date().getFullYear()} {biz.name}. Prices in PKR.</p>
+          <nav aria-label="Team login" className="flex gap-2">
+            <Link href="/login?next=/panel/pos" className="btn btn-ghost btn-sm">Staff login</Link>
+            <Link href="/login?next=/panel" className="btn btn-ghost btn-sm">Owner login</Link>
+          </nav>
+        </div>
       </div>
     </footer>
   );

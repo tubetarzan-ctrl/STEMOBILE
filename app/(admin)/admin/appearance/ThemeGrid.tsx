@@ -5,6 +5,17 @@ import type { Theme } from "@/lib/data/types";
 import { activateThemeAction } from "../website/actions";
 import { cn } from "@/lib/utils";
 
+const WORLD: Record<string, string> = {
+  "cupertino-light": "Clean white & blue — Apple Store style",
+  "graphite-pro": "Black & graphite — Apple Pro pages style",
+  "indigo-wave": "Airy light & indigo — Stripe style",
+  "dusk-violet": "Near-black & violet — Linear style",
+  "mono-signal": "Black & white, red signal — Nothing style",
+  "ocean-navy": "Deep navy & electric blue — Samsung style",
+  noir: "Pure black, white accent — Vercel style",
+  "neon-pulse": "Charcoal & neon green — Spotify style",
+};
+
 export function ThemeGrid({ themes }: { themes: Theme[] }) {
   const [active, setActive] = useState(themes.find((t) => t.is_active)?.key);
   const [preview, setPreview] = useState(active);
@@ -13,7 +24,29 @@ export function ThemeGrid({ themes }: { themes: Theme[] }) {
   const p = themes.find((t) => t.key === preview)!;
   const v = (k: string) => p?.tokens[k];
 
+  const apply = (key: string) => start(async () => { const r = await activateThemeAction(key); if (r.ok) { setActive(key); setMsg("Applied to site ✓"); } else setMsg(r.error); });
+  const world = themes.filter((t) => WORLD[t.key]);
+  const originals = themes.filter((t) => !WORLD[t.key]);
+
   return (
+    <div className="space-y-8">
+      <div className="card flex flex-wrap items-end gap-3 p-5">
+        <label className="min-w-64 flex-1 space-y-1">
+          <span className="label">Website theme</span>
+          <select value={preview} onChange={(e) => { setPreview(e.target.value); setMsg(null); }} className="input">
+            <optgroup label="World-class looks">
+              {world.map((t) => <option key={t.key} value={t.key}>{t.name} — {WORLD[t.key]}{active === t.key ? " (live)" : ""}</option>)}
+            </optgroup>
+            <optgroup label="StarTech originals">
+              {originals.map((t) => <option key={t.key} value={t.key}>{t.name}{active === t.key ? " (live)" : ""}</option>)}
+            </optgroup>
+          </select>
+        </label>
+        <button type="button" className="btn btn-primary" disabled={pending || preview === active || !preview} onClick={() => preview && apply(preview)}>
+          {pending ? "Applying…" : "Apply to site"}
+        </button>
+        {msg && <span className="text-sm">{msg}</span>}
+      </div>
     <div className="grid gap-8 xl:grid-cols-[1fr_1.2fr]">
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
         {themes.map((t) => (
@@ -38,11 +71,12 @@ export function ThemeGrid({ themes }: { themes: Theme[] }) {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <button className="btn btn-primary" disabled={pending || preview === active} onClick={() => start(async () => { const r = await activateThemeAction(preview!); if (r.ok) { setActive(preview); setMsg("Applied to site"); } else setMsg(r.error); })}>Apply to site</button>
+            <button className="btn btn-primary" disabled={pending || preview === active} onClick={() => preview && apply(preview)}>Apply to site</button>
             {msg && <span className="text-sm">{msg}</span>}
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }

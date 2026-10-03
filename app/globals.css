@@ -312,3 +312,22 @@ html.st-splash-out body { overflow: auto; }
   .st-mark { animation: none; transform: rotateX(16deg) rotateY(-32deg); --st-gap: calc(var(--s) * .09); }
   .st-splash-word span, .st-splash-sub { opacity: 1; transform: none; }
 }
+
+/* --- Chat assistant (components/chat) ---------------------------------------- */
+.st-avatar { filter: drop-shadow(0 8px 18px rgba(0,0,0,.45)) drop-shadow(0 0 10px color-mix(in srgb, var(--accent) 35%, transparent)); }
+.st-wave-arm { transform-box: view-box; transform-origin: 86px 112px; animation: st-wave 2.6s ease-in-out infinite; }
+@keyframes st-wave {
+  0%, 55%, 100% { transform: rotate(0deg); }
+  10% { transform: rotate(16deg); }
+  20% { transform: rotate(-10deg); }
+  30% { transform: rotate(16deg); }
+  40% { transform: rotate(-6deg); }
+}
+.st-avatar-bob { animation: st-bob 3.8s ease-in-out infinite; }
+@keyframes st-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.st-teaser { animation: st-pop .45s var(--ease) both; }
+.st-chat-in { animation: st-pop .3s var(--ease) both; transform-origin: bottom right; }
+@keyframes st-pop { from { opacity: 0; transform: translateY(10px) scale(.96); } to { opacity: 1; transform: none; } }
+.st-typing i { width: 6px; height: 6px; border-radius: 99px; background: var(--ink-3); animation: st-blink 1.1s infinite; display: block; }
+.st-typing i:nth-child(2) { animation-delay: .15s; }
+.st-typing i:nth-child(3) { animation-delay: .3s; }

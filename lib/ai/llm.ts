@@ -82,6 +82,13 @@ export async function runWithTools(opts: {
   return { text: "", usage, toolCalls, refused: false };
 }
 
+/** One short completion with no tools — used only as the chat bot's last resort. */
+export async function completeOnce(system: string, user: string, maxTokens = 300): Promise<{ text: string; usage: { input: number; output: number } }> {
+  const res = await chat({ model: AI_MODEL, messages: [{ role: "system", content: system }, { role: "user", content: user }], max_completion_tokens: maxTokens });
+  const m = res.choices[0]?.message;
+  return { text: m?.refusal ? "" : (m?.content ?? "").trim(), usage: { input: res.usage?.prompt_tokens ?? 0, output: res.usage?.completion_tokens ?? 0 } };
+}
+
 export async function logUsage(feature: string, answeredFrom: "faq" | "answer_bank" | "model" | "handoff", question: string, usage?: { input: number; output: number }) {
   if (!process.env.SUPABASE_SERVICE_ROLE_KEY) return;
   const { supabaseAdmin } = await import("@/lib/supabase/server");

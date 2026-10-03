@@ -2,6 +2,7 @@ import { Splash } from "@/components/brand/Splash";
 import { Footer } from "@/components/store/Footer";
 import { Header } from "@/components/store/Header";
 import { WhatsAppBubble } from "@/components/store/WhatsAppBubble";
+import { ChatWidget } from "@/components/chat/ChatWidget";
 
 export default function StoreLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -14,6 +15,7 @@ export default function StoreLayout({ children }: { children: React.ReactNode })
       <main id="main">{children}</main>
       <Footer />
       <WhatsAppBubble />
+      <ChatWidget />
     </>
   );
 }

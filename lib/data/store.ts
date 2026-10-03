@@ -138,6 +138,23 @@ export async function getProduct(slug: string): Promise<Product | null> {
   return (await hydrate([data as unknown as Row]))[0] ?? null;
 }
 
+/**
+ * Exact lookup for the chat assistant: products in one category that fit one
+ * device (or all products of a universal category). Always hits the database
+ * live (no ISR cache) so stock answers are current.
+ */
+export async function findProductsForChat(category: string, deviceId?: string | null): Promise<Product[]> {
+  if (!hasSupabase) {
+    return mockProducts.filter((p) => p.category.slug === category && (!deviceId || p.variants.some((v) => v.fits.some((f) => f.device_id === deviceId && f.confidence !== "no"))));
+  }
+  let select = PRODUCT_SELECT.replace("categories(", "categories!inner(");
+  if (deviceId) select = select.replace("product_variants(", "product_variants!inner(").replace("part_compat(", "part_compat!inner(");
+  let q = supabasePublic().from("products").select(select).eq("categories.slug", category).limit(20);
+  if (deviceId) q = q.eq("product_variants.part_compat.device_id", deviceId).neq("product_variants.part_compat.confidence", "no");
+  const { data } = await q;
+  return hydrate((data ?? []) as unknown as Row[]);
+}
+
 export async function getRelated(product: Product, device?: string | null): Promise<ProductCard[]> {
   // "Frequently bought together": screen -> glass + case for the same device; else same category.
   const deviceIds = new Set(product.variants.flatMap((v) => v.fits.map((f) => f.device_id)));
