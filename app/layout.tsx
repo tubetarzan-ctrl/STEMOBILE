@@ -1,7 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, IBM_Plex_Sans, Noto_Naskh_Arabic, Noto_Nastaliq_Urdu, Space_Grotesk } from "next/font/google";
 import { cookies } from "next/headers";
-import { getActiveTheme, getThemes } from "@/lib/data/store";
+import { getActiveTheme, getFontKey, getThemes } from "@/lib/data/store";
+import { fontByKey, googleFontsHref } from "@/lib/fonts";
 import { getLang } from "@/lib/i18n";
 import { Suspense } from "react";
 import { RouteProgress } from "@/components/brand/RouteProgress";
@@ -47,6 +48,8 @@ async function themeCss(): Promise<string> {
 
 export default async function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const lang = await getLang();
+  const font = fontByKey(await getFontKey());
+  const fontHref = googleFontsHref(font);
   return (
     <html
       suppressHydrationWarning // splash script toggles classes on <html> before hydration
@@ -56,6 +59,14 @@ export default async function RootLayout({ children }: Readonly<{ children: Reac
     >
       <head>
         <style dangerouslySetInnerHTML={{ __html: await themeCss() }} />
+        {fontHref && (
+          <>
+            <link rel="preconnect" href="https://fonts.googleapis.com" />
+            <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
+            <link rel="stylesheet" href={fontHref} />
+            <style dangerouslySetInnerHTML={{ __html: `:root{--font-pick:"${font.family}";}` }} />
+          </>
+        )}
       </head>
       <body className="min-h-dvh antialiased">
         <Suspense fallback={null}><RouteProgress /></Suspense>

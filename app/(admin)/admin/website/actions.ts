@@ -107,6 +107,16 @@ export async function activateThemeAction(key: string): Promise<R> {
   return done(error);
 }
 
+export async function setFontAction(key: string): Promise<R> {
+  await requirePermission("appearance.manage");
+  const { FONTS } = await import("@/lib/fonts");
+  if (!FONTS.some((f) => f.key === key)) return { ok: false, error: "Unknown font" };
+  const sb = await supabaseServer();
+  const { error } = await sb.from("theme_overrides").update({ fonts: { key } }).eq("id", 1);
+  revalidatePath("/", "layout");
+  return done(error);
+}
+
 export async function saveFaqAction(faq: { id?: string; q_en: string; a_en: string; q_ur?: string; a_ur?: string; sort?: number; visible?: boolean }, del = false): Promise<R> {
   await requirePermission(del ? "content.delete" : "content.edit");
   const sb = await supabaseServer();

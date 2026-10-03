@@ -202,6 +202,13 @@ export const getThemes = cache(async (): Promise<Theme[]> => {
   return (data as Theme[])?.length ? (data as Theme[]) : mockThemes;
 });
 
+/** Website font chosen in Super Admin → Appearance (theme_overrides.fonts.key). */
+export const getFontKey = cache(async (): Promise<string> => {
+  if (!hasSupabase) return "startech";
+  const { data } = await supabasePublic().from("theme_overrides").select("fonts").maybeSingle();
+  return ((data?.fonts as { key?: string } | null)?.key) ?? "startech";
+});
+
 export const getActiveTheme = cache(async (): Promise<Theme> => {
   const themes = await getThemes();
   const active = themes.find((t) => t.is_active) ?? themes[0];

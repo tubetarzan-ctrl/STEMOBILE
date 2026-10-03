@@ -37,8 +37,8 @@
   --color-trust: var(--trust);
   --color-warn: var(--warn);
   --color-danger: var(--danger);
-  --font-display: var(--font-space-grotesk), ui-sans-serif, system-ui, sans-serif;
-  --font-sans: var(--font-plex-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-pick, var(--font-space-grotesk)), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-pick, var(--font-plex-sans)), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
   --font-urdu: var(--font-nastaliq), var(--font-naskh), serif;
   --radius-card: 16px;
