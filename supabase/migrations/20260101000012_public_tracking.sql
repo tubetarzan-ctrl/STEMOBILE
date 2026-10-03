@@ -25,13 +25,13 @@ grant execute on function public.track_order(text, text) to anon, authenticated;
 insert into public.content_blocks (key, en) values
   ('business.name', 'StarTech Electronics'),
   ('business.tagline', 'Genuine parts. Honest repairs. Since 2003.'),
-  ('business.address', 'Sarena Mobile Mall, Karachi'),
-  ('business.phone', '+923000000000'),
-  ('business.whatsapp', '+923000000000'),
-  ('business.email', 'hello@startech.pk'),
-  ('business.hours', 'Mon–Sat 11:00–21:00 · Sun closed'),
+  ('business.address', 'Shop # 1F, Sarena Family Market and Mobile Mall, Roundabout, Sakhi Hassan, Sector 15-A-1, Buffer Zone, Karachi'),
+  ('business.phone', '+923322142141'),
+  ('business.whatsapp', '+923322142141'),
+  ('business.email', ''),
+  ('business.hours', 'Mon–Sat 1:00 PM – 12:00 AM · Sun closed'),
   ('business.years', '22'),
-  ('business.map_url', 'https://maps.google.com/?q=Sarena+Mobile+Mall+Karachi')
+  ('business.map_url', 'https://www.google.com/maps/search/?api=1&query=Sarena+Family+Market+and+Mobile+Mall+Sakhi+Hassan+Buffer+Zone+Karachi')
 on conflict (key) do nothing;
 
 -- Policy pages, editable in the CMS (rich_text sections).

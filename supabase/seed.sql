@@ -7,7 +7,7 @@ select setseed(0.42);
 
 -- --- Settings -------------------------------------------------------------------
 insert into public.settings (key, value) values
-  ('business', '{"name":"StarTech Electronics","tagline":"Genuine parts. Honest repairs. Since 2003.","address":"Shop #—, Sarena Mobile Mall, Karachi","phone":"+923000000000","whatsapp":"+923000000000","email":"hello@startech.pk","hours":"Mon–Sat 11:00–21:00 · Sun closed","years":22,"map_url":"https://maps.google.com/?q=Sarena+Mobile+Mall+Karachi"}'),
+  ('business', '{"name":"StarTech Electronics","tagline":"Genuine parts. Honest repairs. Since 2003.","address":"Shop # 1F, Sarena Family Market and Mobile Mall, Roundabout, Sakhi Hassan, Sector 15-A-1, Buffer Zone, Karachi","phone":"+923322142141","whatsapp":"+923322142141","email":"","hours":"Mon–Sat 1:00 PM – 12:00 AM · Sun closed","years":22,"map_url":"https://www.google.com/maps/search/?api=1&query=Sarena+Family+Market+and+Mobile+Mall+Sakhi+Hassan+Buffer+Zone+Karachi"}'),
   ('loyalty', '{"enabled":true,"points_per_100":1,"paisa_per_point":100}'),
   ('cod', '{"confirm_hours":4,"high_value_paisa":2500000,"advance_threshold":60}'),
   ('delivery', '{"default_fee":25000,"free_over":1500000}'),
@@ -497,7 +497,7 @@ select (select id from public.site_pages where slug = ''), t.type, t.sort, t.dra
  ('why_us', 10, '{"title_en":"Why StarTech","points":[{"title_en":"22 years, same mall","body_en":"We''ve been at Sarena Mobile Mall since 2003. We''ll be here when you need the warranty."},{"title_en":"We show the grade","body_en":"Original, pulled, OEM, premium or standard — written on the invoice and the QR code."},{"title_en":"Technicians buy from us","body_en":"Over a hundred Karachi repair shops stock their benches with our parts."}],"comparison":{"columns":["StarTech","Typical mall stall","Online marketplace"],"rows":[["Part grade disclosed","Yes, on invoice + QR","Rarely","Unclear"],["Fits-your-model check","Fit Finder","Ask the seller","No"],["Digital warranty","Yes, on your number","Paper slip","Varies"],["Repair tracking","Live, with photos","Call and ask","—"],["Price before visiting","Instant quote","No","Parts only"]]}}'),
  ('technician_pro', 11, '{"title_en":"Technician Pro","body_en":"Run a repair shop? Get trade pricing, a credit line with a digital khata, WhatsApp statements and quick reorder.","cta":{"label_en":"Apply for a trade account","href":"/trade/apply"}}'),
  ('faq', 12, '{"title_en":"Questions, answered"}'),
- ('final_cta', 13, '{"title_en":"Bring it in, or let us come to you.","body_en":"Book a repair, shop parts, or just ask on WhatsApp — we reply fast.","actions":[{"label_en":"Book a repair","href":"/repair"},{"label_en":"Shop now","href":"/shop"},{"label_en":"WhatsApp us","href":"whatsapp"}]}')
+ ('final_cta', 13, '{"title_en":"Bring it in, or let us come to you.","body_en":"iPhone and Android repairs, screen replacements and complex hardware faults like Wi-Fi IC repair. Book a repair, shop parts, or just ask on WhatsApp — we reply fast.","actions":[{"label_en":"Book a repair","href":"/repair"},{"label_en":"Shop now","href":"/shop"},{"label_en":"WhatsApp us","href":"whatsapp"}]}')
 ) as t(type, sort, draft);
 
 select public.publish_page((select id from public.site_pages where slug = ''), 'Initial homepage');
@@ -512,7 +512,7 @@ insert into public.faqs (q_en, a_en, keywords, sort) values
   ('How do I check if a part is genuine?', 'Scan the QR code on the part''s label or enter its code at startech.pk/verify. You''ll see the grade, sale date and remaining warranty.', '{genuine,verify,fake}', 7),
   ('Can repair shops buy at trade prices?', 'Yes. Apply for a Technician Pro account. Once approved you get tiered pricing, a credit limit with a digital khata, and WhatsApp statements.', '{trade,wholesale,technician}', 8),
   ('Do you buy broken screens?', 'Yes — we buy broken LCD/OLED panels and old devices. Get an indicative price online, drop it at the shop, and get paid in cash, store credit or khata credit after testing.', '{buyback,sell,broken}', 9),
-  ('Where is the shop?', 'Sarena Mobile Mall, Karachi. Open Monday to Saturday, 11 AM to 9 PM.', '{location,address,where,timing}', 10);
+  ('Where is the shop?', 'Shop # 1F, Sarena Family Market and Mobile Mall, Roundabout, Sakhi Hassan, Sector 15-A-1, Buffer Zone, Karachi. Open Monday to Saturday, 1:00 PM to 12:00 AM; closed Sunday. Call or WhatsApp +92 332 2142141.', '{location,address,where,timing,hours,open,time}', 10);
 
 insert into public.repair_stories (device_label, problem, replaced, grade, time_taken, quote, customer_name, sort) values
   ('iPhone 13', 'Shattered display after a fall; Face ID still working.', 'Display assembly', 'OEM', '45 minutes', 'Watched the whole thing on the tracker. True Tone works perfectly.', 'Sana K.', 1),

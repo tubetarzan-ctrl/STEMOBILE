@@ -14,6 +14,12 @@ export function normalizePhone(p: string): string {
   return x;
 }
 
+/** +923322142141 -> "+92 332 2142141" (display only). */
+export function formatPhonePK(p: string): string {
+  const n = normalizePhone(p);
+  return /^\+92\d{10}$/.test(n) ? `+92 ${n.slice(3, 6)} ${n.slice(6)}` : p;
+}
+
 export function isValidPKMobile(p: string): boolean {
   return /^\+923\d{9}$/.test(normalizePhone(p));
 }

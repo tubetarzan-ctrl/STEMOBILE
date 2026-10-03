@@ -255,13 +255,14 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
 }
 
 function ReceiptModal({ r, onClose }: { r: Receipt; onClose: () => void }) {
-  const text = `StarTech Electronics — Sarena Mobile Mall\nReceipt #${r.saleNo}\n${r.lines.map((l) => `${l.qty} x ${l.item.name}  ${formatPKR(l.qty * l.item.price - l.discount)}`).join("\n")}\nTotal ${formatPKR(r.total)}\nThank you!`;
+  const text = `StarTech Electronics — Sarena Mobile Mall, Buffer Zone, Karachi\n+92 332 2142141\nReceipt #${r.saleNo}\n${r.lines.map((l) => `${l.qty} x ${l.item.name}  ${formatPKR(l.qty * l.item.price - l.discount)}`).join("\n")}\nTotal ${formatPKR(r.total)}\nThank you!`;
   return (
     <div role="dialog" aria-modal="true" aria-label="Receipt" className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 print:static print:bg-white">
       <div className="w-full max-w-sm space-y-4 rounded-2xl bg-surface-1 p-5 print:max-w-[80mm] print:rounded-none print:bg-white print:p-0 print:text-black">
         <div id="receipt" className="space-y-2 font-mono text-xs">
           <p className="text-center text-sm font-bold">StarTech Electronics</p>
-          <p className="text-center">Sarena Mobile Mall, Karachi</p>
+          <p className="text-center">Shop # 1F, Sarena Mobile Mall, Buffer Zone, Karachi</p>
+          <p className="text-center">+92 332 2142141</p>
           <p className="text-center">#{r.saleNo} · {r.at.toLocaleString("en-PK")}{r.offline && " · OFFLINE (will sync)"}</p>
           <hr className="border-dashed border-line" />
           {r.lines.map((l) => (

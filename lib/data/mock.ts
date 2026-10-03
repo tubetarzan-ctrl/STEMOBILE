@@ -121,6 +121,8 @@ export const mockFaqs: Faq[] = [
   ["How fast is delivery?", "Karachi: same or next day by our rider. Other cities: 2–3 working days by courier."],
   ["Is my data safe during a repair?", "We only ask for your passcode if a test needs it. It is encrypted and automatically deleted the moment you collect your phone."],
   ["How do I check if a part is genuine?", "Scan the QR code on the part's label or enter its code on our Verify page. You'll see the grade, sale date and remaining warranty."],
+  ["Where is the shop and when are you open?", "Shop # 1F, Sarena Family Market and Mobile Mall, Roundabout, Sakhi Hassan, Sector 15-A-1, Buffer Zone, Karachi. Open Monday to Saturday, 1:00 PM to 12:00 AM; closed Sunday. Call or WhatsApp +92 332 2142141."],
+  ["What repairs do you do?", "iPhone and Android repairs, screen replacements, battery and charging-port fixes, and complex hardware troubleshooting such as Wi-Fi IC repairs. Use the Instant Repair Quote to see the price before you visit."],
   ["Can repair shops buy at trade prices?", "Yes — apply for a Technician Pro account for tiered pricing, a credit limit with a digital khata and WhatsApp statements."],
 ].map(([q, a], i) => ({ id: `f${i}`, q_en: q, a_en: a }));
 
@@ -184,5 +186,5 @@ export const defaultHomeSections: Section[] = [
   } },
   { id: "pro", type: "technician_pro", data: { title_en: "Technician Pro", body_en: "Run a repair shop? Get trade pricing, a credit line with a digital khata, WhatsApp statements and quick reorder.", cta: { label_en: "Apply for a trade account", href: "/trade/apply" } } },
   { id: "faq", type: "faq", data: { title_en: "Questions, answered" } },
-  { id: "cta", type: "final_cta", data: { title_en: "Bring it in, or let us come to you.", body_en: "Book a repair, shop parts, or just ask on WhatsApp — we reply fast." } },
+  { id: "cta", type: "final_cta", data: { title_en: "Bring it in, or let us come to you.", body_en: "iPhone and Android repairs, screen replacements and complex hardware faults like Wi-Fi IC repair. Book a repair, shop parts, or just ask on WhatsApp — we reply fast." } },
 ];

@@ -1,5 +1,6 @@
 import "server-only";
 import { cache } from "react";
+import { SHOP } from "./shop";
 import { hasSupabase, supabasePublic } from "@/lib/supabase/server";
 import type { Grade } from "@/lib/grades";
 import {
@@ -14,10 +15,8 @@ import type {
 // otherwise the deterministic demo catalogue in ./mock.
 
 const DEFAULT_BUSINESS: BusinessSettings = {
-  name: "StarTech Electronics", tagline: "Genuine parts. Honest repairs. Since 2003.",
-  address: "Sarena Mobile Mall, Karachi", phone: "+923000000000", whatsapp: "+923000000000",
-  email: "hello@startech.pk", hours: "Mon–Sat 11:00–21:00 · Sun closed", years: 22,
-  map_url: "https://maps.google.com/?q=Sarena+Mobile+Mall+Karachi",
+  name: SHOP.name, tagline: SHOP.tagline, address: SHOP.address, phone: SHOP.phone, whatsapp: SHOP.whatsapp,
+  email: SHOP.email, hours: SHOP.hours, years: SHOP.years, map_url: SHOP.map_url,
 };
 
 export const getBusiness = cache(async (): Promise<BusinessSettings> => {

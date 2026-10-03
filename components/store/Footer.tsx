@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { getBusiness, getCategories } from "@/lib/data/store";
-import { whatsappLink } from "@/lib/utils";
+import { formatPhonePK, whatsappLink } from "@/lib/utils";
+import { SHOP } from "@/lib/data/shop";
 import { Logo } from "./Logo";
 
 export async function Footer() {
@@ -10,8 +11,9 @@ export async function Footer() {
     "@type": "ElectronicsStore",
     name: biz.name,
     address: { "@type": "PostalAddress", streetAddress: biz.address, addressLocality: "Karachi", addressCountry: "PK" },
+    description: SHOP.services,
     telephone: biz.phone,
-    openingHours: "Mo-Sa 11:00-21:00",
+    openingHours: SHOP.openingHoursSchema,
     url: process.env.NEXT_PUBLIC_SITE_URL,
   };
   return (
@@ -46,8 +48,8 @@ export async function Footer() {
           <h3 className="eyebrow mb-4">Talk to us</h3>
           <ul className="space-y-2 text-sm text-ink-2">
             <li><a href={whatsappLink(biz.whatsapp, "Hi StarTech!")} className="hover:text-ink" target="_blank" rel="noopener">WhatsApp</a></li>
-            <li><a href={`tel:${biz.phone}`} className="hover:text-ink">{biz.phone}</a></li>
-            <li><a href={`mailto:${biz.email}`} className="hover:text-ink">{biz.email}</a></li>
+            <li><a href={`tel:${biz.phone}`} className="hover:text-ink">{formatPhonePK(biz.phone)}</a></li>
+            {biz.email && <li><a href={`mailto:${biz.email}`} className="hover:text-ink">{biz.email}</a></li>}
             <li><a href={biz.map_url} className="hover:text-ink" target="_blank" rel="noopener">Directions</a></li>
           </ul>
           <h3 className="eyebrow mb-3 mt-8">Policies</h3>
