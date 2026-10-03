@@ -138,6 +138,9 @@ async function notifyRepair(jobId: string, status: string) {
   else if (status === "ready") await sendTemplate(phone, "ready_for_pickup", [j.device_label ?? "phone", j.job_no]);
   else await sendTemplate(phone, "repair_status", [j.job_no, status.replace(/_/g, " "), link]);
 }
+export async function updateRepairDetailsAction(jobId: string, p: { technician_id?: string; labour?: number; estimate?: number; promised_at?: string; imei?: string; notes?: string }) {
+  return rpc("repairs.manage", "update_repair_job_details", { p_job: jobId, p }, `/panel/repairs/${jobId}`);
+}
 export async function saveChecklistAction(jobId: string, kind: "intake" | "qc", items: Record<string, string>): Promise<ActionResult<null>> {
   await requirePermission("repairs.manage");
   const sb = await supabaseServer();
@@ -171,11 +174,51 @@ export async function postManualJournalAction(date: string, memo: string, lines:
 export async function reverseJournalAction(entryId: string, reason: string) {
   return rpc("accounts.journal.create", "reverse_journal", { p_entry: entryId, p_reason: reason }, "/panel/accounts");
 }
+// --- Easy Books (plain-language entries → balanced journals) ----------------------------------
+type Easy = { kind: "expense" | "owner_took" | "owner_added" | "supplier_paid" | "customer_paid" | "cash_to_bank"; amount: number; from: number; account: number; party: string; memo: string; date: string };
+const ACC_PATHS = ["/panel/accounts", "/panel/reports"];
+export async function easyEntryAction(e: Easy): Promise<ActionResult> {
+  if (!Number.isInteger(e.amount) || e.amount <= 0) return { ok: false, error: "Enter an amount." };
+  if (![10100, 10200, 10400].includes(e.from)) return { ok: false, error: "Choose cash or bank." };
+  const memo = (label: string) => (e.memo.trim() ? `${label} — ${e.memo.trim()}` : label);
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(e.date) ? e.date : null;
+  switch (e.kind) {
+    case "expense":
+      if (e.account < 60000 || e.account >= 70000) return { ok: false, error: "Choose an expense type." };
+      return rpc("accounts.expense", "post_expense", { p_account: e.account, p_amount: e.amount, p_paid_from: e.from, p_memo: memo("Expense"), p_session: null, p_date: date }, ACC_PATHS);
+    case "owner_took":
+      return rpc("accounts.journal.create", "post_manual_journal", { p_date: date, p_memo: memo("Owner drawings"), p_lines: [{ account: 30200, debit: e.amount }, { account: e.from, credit: e.amount }] }, ACC_PATHS);
+    case "owner_added":
+      return rpc("accounts.journal.create", "post_manual_journal", { p_date: date, p_memo: memo("Owner capital introduced"), p_lines: [{ account: e.from, debit: e.amount }, { account: 30100, credit: e.amount }] }, ACC_PATHS);
+    case "cash_to_bank":
+      return rpc("accounts.journal.create", "post_manual_journal", { p_date: date, p_memo: memo("Cash deposited in bank"), p_lines: [{ account: 10200, debit: e.amount }, { account: 10100, credit: e.amount }] }, ACC_PATHS);
+    case "supplier_paid":
+      if (!e.party) return { ok: false, error: "Choose the supplier." };
+      return rpc("purchases.pay", "pay_supplier_simple", { p_supplier: e.party, p_amount: e.amount, p_paid_from: e.from, p_reference: e.memo || null }, ACC_PATHS);
+    case "customer_paid": {
+      if (!e.party) return { ok: false, error: "Choose the customer." };
+      const method = e.from === 10100 ? "cash" : e.from === 10200 ? "bank_transfer" : "jazzcash";
+      return rpc("trade.manage", "post_trade_payment", { p_customer: e.party, p_amount: e.amount, p_method: method, p_reference: e.memo || null, p_session: null }, ACC_PATHS);
+    }
+  }
+}
+export async function openingBalancesAction(p: { date: string; cash: number; bank: number; customers: { name: string; phone: string; amount: number }[]; suppliers: { name: string; amount: number }[] }) {
+  return rpc("accounts.journal.create", "post_opening_balances", { p }, ACC_PATHS);
+}
+/** Owner only (checked again in the database). */
+export async function resetTestDataAction(keepCatalog: boolean, confirmText: string) {
+  const staff = await requirePermission("staff.manage").catch(() => null);
+  if (!staff?.isOwner) return { ok: false, error: "Only the owner can do this." } as ActionResult;
+  return rpc("staff.manage", "reset_business_data", { p_keep_catalog: keepCatalog, p_confirm: confirmText }, ["/panel", ...ACC_PATHS, "/panel/closing", "/"]);
+}
 export async function runDailyClosingAction(date: string) {
   return rpc("accounts.period.close", "run_daily_closing", { p_date: date }, "/panel/closing");
 }
 export async function verifyDayAction(date: string) {
   return rpc("accounts.period.close", "verify_business_day", { p_date: date }, "/panel/closing");
+}
+export async function unverifyDayAction(date: string) {
+  return rpc("accounts.period.close", "unverify_business_day", { p_date: date }, "/panel/closing");
 }
 export async function closeMonthAction(month: string) {
   return rpc<{ closed: boolean; checks: Record<string, unknown> }>("accounts.period.close", "close_month", { p_month: month }, "/panel/accounts");
@@ -205,17 +248,30 @@ export async function tradePaymentAction(customerId: string, amount: number, met
 // --- Reviews ------------------------------------------------------------------------------------
 export async function moderateReviewAction(id: string, patch: { status?: string; featured?: boolean; owner_reply?: string | null; sort?: number }): Promise<ActionResult<null>> {
   await requirePermission(patch.owner_reply !== undefined ? "reviews.reply" : "reviews.moderate");
-  const sb = await supabaseServer();
-  const { error } = await sb.from("reviews").update({ ...patch, ...(patch.owner_reply !== undefined ? { owner_reply_at: new Date().toISOString() } : {}) }).eq("id", id);
+  const { error } = await supabaseAdmin().from("reviews").update({ ...patch, ...(patch.owner_reply !== undefined ? { owner_reply_at: new Date().toISOString() } : {}) }).eq("id", id);
   revalidatePath("/admin/reviews"); revalidatePath("/");
   return error ? { ok: false, error: error.message } : { ok: true, data: null };
 }
 export async function deleteReviewAction(id: string): Promise<ActionResult<null>> {
   await requirePermission("reviews.moderate");
-  const sb = await supabaseServer();
-  const { error } = await sb.from("reviews").delete().eq("id", id);
+  const { error } = await supabaseAdmin().from("reviews").delete().eq("id", id);
   revalidatePath("/admin/reviews"); revalidatePath("/");
   return error ? { ok: false, error: error.message } : { ok: true, data: null };
+}
+// DECISION: staff can type in feedback a real customer gave in person / on WhatsApp
+// (source 'admin', shown without the "verified purchase" tick). Ratings a customer
+// submitted themselves are never editable — only approve / hide / reply / delete.
+export async function addReviewAction(r: { author_name: string; rating: number; text: string; phone?: string; photos?: string[] }): Promise<ActionResult<null>> {
+  await requirePermission("reviews.moderate");
+  if (!r.author_name.trim() || !r.text.trim() || r.rating < 1 || r.rating > 5) return { ok: false, error: "Name, rating and text are required." };
+  const sb = supabaseAdmin();
+  const { data, error } = await sb.from("reviews").insert({
+    source: "admin", rating: Math.round(r.rating), text: r.text.trim(), author_name: r.author_name.trim(), phone: r.phone?.trim() || null, status: "published",
+  }).select("id").single();
+  if (error) return { ok: false, error: error.message };
+  if (r.photos?.length) await sb.from("review_media").insert(r.photos.map((url, i) => ({ review_id: data.id, type: "image", url, sort: i })));
+  revalidatePath("/admin/reviews"); revalidatePath("/");
+  return { ok: true, data: null };
 }
 export async function replyGoogleAction(reviewId: string, comment: string): Promise<ActionResult<null>> {
   await requirePermission("reviews.reply");
@@ -230,7 +286,7 @@ export async function replyGoogleAction(reviewId: string, comment: string): Prom
 // --- Staff & permissions --------------------------------------------------------------------------
 export async function setPermissionOverrideAction(profileId: string, key: string, granted: boolean | null): Promise<ActionResult<null>> {
   await requirePermission("staff.manage");
-  const sb = await supabaseServer();
+  const sb = supabaseAdmin();
   const { error } = granted === null
     ? await sb.from("employee_permissions").delete().eq("profile_id", profileId).eq("permission_key", key)
     : await sb.from("employee_permissions").upsert({ profile_id: profileId, permission_key: key, granted });
@@ -238,10 +294,37 @@ export async function setPermissionOverrideAction(profileId: string, key: string
   return error ? { ok: false, error: error.message } : { ok: true, data: null };
 }
 export async function setStaffRoleAction(profileId: string, role: string, active: boolean): Promise<ActionResult<null>> {
-  await requirePermission("staff.manage");
-  const { error } = await supabaseAdmin().from("profiles").update({ role_key: role, is_active: active }).eq("id", profileId);
+  const me = await requirePermission("staff.manage");
+  const sb = supabaseAdmin();
+  // Guard rails: nobody locks themselves out, the shop always keeps one owner,
+  // and only an owner can make someone else an owner.
+  if (profileId === me.id) return { ok: false, error: "You can't change your own role or deactivate yourself." };
+  if (role === "super_admin" && !me.isOwner) return { ok: false, error: "Only the owner can make someone an owner." };
+  const { data: target } = await sb.from("profiles").select("role_key").eq("id", profileId).single();
+  if (target?.role_key === "super_admin" && (role !== "super_admin" || !active)) {
+    if (!me.isOwner) return { ok: false, error: "Only the owner can change another owner." };
+    const { count } = await sb.from("profiles").select("id", { count: "exact", head: true }).eq("role_key", "super_admin").eq("is_active", true);
+    if ((count ?? 0) <= 1) return { ok: false, error: "This is the last owner account — add another owner first." };
+  }
+  const { error } = await sb.from("profiles").update({ role_key: role, is_active: active }).eq("id", profileId);
   revalidatePath("/admin/staff");
   return error ? { ok: false, error: error.message } : { ok: true, data: null };
+}
+/** Owner adds an employee: creates their login and sets the role in one step. */
+export async function createEmployeeAction(e: { email: string; password: string; full_name: string; phone?: string; role: string }): Promise<ActionResult<null>> {
+  const me = await requirePermission("staff.manage");
+  if (!/^\S+@\S+\.\S+$/.test(e.email)) return { ok: false, error: "Enter a valid email." };
+  if (e.password.length < 8) return { ok: false, error: "Password must be at least 8 characters." };
+  if (!e.full_name.trim()) return { ok: false, error: "Enter the employee's name." };
+  if (e.role === "super_admin" && !me.isOwner) return { ok: false, error: "Only the owner can add another owner." };
+  const sb = supabaseAdmin();
+  const { data, error } = await sb.auth.admin.createUser({ email: e.email.trim().toLowerCase(), password: e.password, email_confirm: true, user_metadata: { full_name: e.full_name.trim() } });
+  if (error) return { ok: false, error: /already/i.test(error.message) ? "That email already has an account." : error.message };
+  const { error: pe } = await sb.from("profiles").upsert({
+    id: data.user.id, full_name: e.full_name.trim(), email: e.email.trim().toLowerCase(), phone: e.phone?.trim() || null, role_key: e.role, is_staff: true, is_active: true,
+  });
+  revalidatePath("/admin/staff");
+  return pe ? { ok: false, error: pe.message } : { ok: true, data: null };
 }
 
 // --- Misc -------------------------------------------------------------------------------------------

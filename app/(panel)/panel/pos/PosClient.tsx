@@ -5,9 +5,13 @@ import { posDb, type CatalogItem } from "@/lib/offline/db";
 import { formatPKR, rupeesToPaisa } from "@/lib/money";
 import { gradeLabel } from "@/lib/grades";
 import { cn, whatsappLink } from "@/lib/utils";
+import { Receipt } from "@/components/receipt/Receipt";
 import { openDrawerAction, postPosSaleAction, syncOfflineSalesAction } from "@/app/actions/panel";
 
-type Line = { item: CatalogItem; qty: number; discount: number };
+// custom lines (no barcode: a service, a loose part, an accessory) carry their own
+// description and revenue account; they post revenue but never move stock.
+type Line = { item: CatalogItem; qty: number; discount: number; custom?: { revenue_account: number } };
+const CUSTOM_KINDS = [[40400, "Service / labour"], [40200, "Part"], [40100, "Accessory / phone"]] as const;
 type Pay = { method: string; amount: number };
 const METHODS = [["cash", "Cash"], ["card", "Card"], ["raast", "Raast QR"], ["jazzcash", "JazzCash"], ["easypaisa", "Easypaisa"], ["wallet", "Store credit"], ["khata", "Khata"]] as const;
 
@@ -30,6 +34,7 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
+  const [custom, setCustom] = useState<{ open: boolean; desc: string; amount: string; kind: number }>({ open: false, desc: "", amount: "", kind: 40400 });
   const scan = useRef<HTMLInputElement>(null);
 
   // --- connectivity, service worker, catalog cache ----------------------------------
@@ -92,6 +97,14 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
     setLines((ls) => { const f = ls.find((l) => l.item.id === item.id); return f ? ls.map((l) => (l === f ? { ...l, qty: l.qty + 1 } : l)) : [...ls, { item, qty: 1, discount: 0 }]; });
     setQ(""); setError(null); scan.current?.focus();
   };
+  const addCustom = () => {
+    const price = rupeesToPaisa(custom.amount || "0") ?? 0;
+    if (!custom.desc.trim() || price <= 0) return setError("Enter a description and an amount.");
+    const id = `custom-${crypto.randomUUID()}`;
+    const item: CatalogItem = { id, sku: "CUSTOM", barcode: null, name: custom.desc.trim(), grade: "NA", price, min_price: 0, on_hand: 999, is_serialized: false, search: "" };
+    setLines((ls) => [...ls, { item, qty: 1, discount: 0, custom: { revenue_account: custom.kind } }]);
+    setCustom({ open: false, desc: "", amount: "", kind: custom.kind }); setError(null);
+  };
   const onScan = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key !== "Enter") return;
     const code = q.trim();
@@ -119,7 +132,9 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
     const key = crypto.randomUUID();
     const payload = {
       idempotency_key: key, client_id: "pos-web", drawer_session_id: session, customer_phone: phone || null, sold_at: new Date().toISOString(),
-      items: lines.map((l) => ({ variant_id: l.item.id, qty: l.qty, unit_price: l.item.price, discount: l.discount })),
+      items: lines.map((l) => l.custom
+        ? { description: l.item.name, qty: l.qty, unit_price: l.item.price, discount: l.discount, revenue_account: l.custom.revenue_account }
+        : { variant_id: l.item.id, qty: l.qty, unit_price: l.item.price, discount: l.discount }),
       payments,
     };
     setBusy(true);
@@ -137,7 +152,7 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
       offline = true;
     }
     // optimistic local stock
-    await Promise.all(lines.map((l) => posDb().catalog.update(l.item.id, { on_hand: l.item.on_hand - l.qty })));
+    await Promise.all(lines.filter((l) => !l.custom).map((l) => posDb().catalog.update(l.item.id, { on_hand: l.item.on_hand - l.qty })));
     setCatalog(await posDb().catalog.toArray());
     setReceipt({ saleNo, total, lines, pays: payments, change, phone: phone || undefined, offline, at: new Date() });
     setLines([]); setPhone(""); setPays([{ method: "cash", amount: 0 }]); setTendered(""); setBusy(false);
@@ -191,6 +206,20 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
             )}
           </div>
 
+          <div className="flex flex-wrap items-end gap-2">
+            {!custom.open ? (
+              <button type="button" className="btn btn-ghost btn-sm" onClick={() => setCustom({ ...custom, open: true })}><Plus className="size-4" />Custom amount (no barcode)</button>
+            ) : (
+              <div className="card flex w-full flex-wrap items-end gap-2 p-3">
+                <label className="min-w-40 flex-1 space-y-1"><span className="label">Description</span><input autoFocus className="input h-10" value={custom.desc} onChange={(e) => setCustom({ ...custom, desc: e.target.value })} placeholder="e.g. Software flashing, charging port" /></label>
+                <label className="w-28 space-y-1"><span className="label">Amount (Rs)</span><input className="input h-10 text-right" inputMode="decimal" value={custom.amount} onChange={(e) => setCustom({ ...custom, amount: e.target.value })} onKeyDown={(e) => e.key === "Enter" && addCustom()} /></label>
+                <label className="space-y-1"><span className="label">Type</span><select className="input h-10" value={custom.kind} onChange={(e) => setCustom({ ...custom, kind: Number(e.target.value) })}>{CUSTOM_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></label>
+                <button type="button" className="btn btn-primary btn-sm h-10" onClick={addCustom}>Add</button>
+                <button type="button" className="btn btn-ghost btn-sm h-10" onClick={() => setCustom({ ...custom, open: false })}>Cancel</button>
+              </div>
+            )}
+          </div>
+
           <div className="card overflow-x-auto">
             <table className="table">
               <thead><tr><th>Item</th><th className="num">Qty</th><th className="num">Price</th>{canDiscount && <th className="num">Discount (Rs)</th>}<th className="num">Total</th><th /></tr></thead>
@@ -198,7 +227,7 @@ export function PosClient({ drawers, openSessions, canDiscount, canBelowMin, cas
                 {lines.length === 0 && <tr><td colSpan={6} className="py-10 text-center text-ink-3">Scan an item to start a sale</td></tr>}
                 {lines.map((l, i) => (
                   <tr key={l.item.id}>
-                    <td><p>{l.item.name}</p><p className="font-mono text-xs text-ink-3">{l.item.sku}{l.item.grade !== "NA" && ` · ${gradeLabel(l.item.grade)}`}{l.item.on_hand < l.qty && <span className="text-warn"> · only {l.item.on_hand} on hand</span>}</p></td>
+                    <td><p>{l.item.name}</p><p className="font-mono text-xs text-ink-3">{l.item.sku}{l.item.grade !== "NA" && ` · ${gradeLabel(l.item.grade)}`}{!l.custom && l.item.on_hand < l.qty && <span className="text-warn"> · only {l.item.on_hand} on hand</span>}</p></td>
                     <td className="num">
                       <span className="inline-flex items-center gap-1">
                         <button type="button" aria-label="Decrease" onClick={() => setLines((ls) => ls.map((x, j) => (j === i ? { ...x, qty: Math.max(1, x.qty - 1) } : x)))}><Minus className="size-3.5" /></button>
@@ -259,21 +288,13 @@ function ReceiptModal({ r, onClose }: { r: Receipt; onClose: () => void }) {
   return (
     <div role="dialog" aria-modal="true" aria-label="Receipt" className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4 print:static print:bg-white">
       <div className="w-full max-w-sm space-y-4 rounded-2xl bg-surface-1 p-5 print:max-w-[80mm] print:rounded-none print:bg-white print:p-0 print:text-black">
-        <div id="receipt" className="space-y-2 font-mono text-xs">
-          <p className="text-center text-sm font-bold">StarTech Electronics</p>
-          <p className="text-center">Shop # 1F, Sarena Mobile Mall, Buffer Zone, Karachi</p>
-          <p className="text-center">+92 332 2142141</p>
-          <p className="text-center">#{r.saleNo} · {r.at.toLocaleString("en-PK")}{r.offline && " · OFFLINE (will sync)"}</p>
-          <hr className="border-dashed border-line" />
-          {r.lines.map((l) => (
-            <div key={l.item.id}><p>{l.item.name}{l.item.grade !== "NA" && ` [${gradeLabel(l.item.grade)}]`}</p><p className="flex justify-between"><span>{l.qty} × {formatPKR(l.item.price)}{l.discount ? ` −${formatPKR(l.discount)}` : ""}</span><span>{formatPKR(l.qty * l.item.price - l.discount)}</span></p></div>
-          ))}
-          <hr className="border-dashed border-line" />
-          <p className="flex justify-between text-sm font-bold"><span>TOTAL</span><span>{formatPKR(r.total)}</span></p>
-          {r.pays.map((p, i) => <p key={i} className="flex justify-between"><span className="capitalize">{p.method}</span><span>{formatPKR(p.amount)}</span></p>)}
-          {r.change > 0 && <p className="flex justify-between"><span>Change</span><span>{formatPKR(r.change)}</span></p>}
-          <p className="pt-2 text-center">Warranty saved on your phone number.<br />Verify parts: startech.pk/verify</p>
-        </div>
+        <Receipt
+          title="SALES RECEIPT" number={`#${r.saleNo}`} at={r.at} customer={{ phone: r.phone }}
+          lines={r.lines.map((l) => ({ name: l.item.name, note: l.item.grade !== "NA" ? gradeLabel(l.item.grade) : undefined, qty: l.qty, unit: l.item.price, discount: l.discount }))}
+          totals={[["TOTAL", r.total, true]]} payments={r.pays} change={r.change}
+          note="Warranty is saved on your phone number — keep this receipt. Parts warranty does not cover physical or water damage."
+          footnote={r.offline ? "OFFLINE SALE — will sync" : undefined}
+        />
         <div className="flex gap-2 print:hidden">
           <button type="button" onClick={() => window.print()} className="btn btn-ghost flex-1"><Printer className="size-4" />Print 80mm</button>
           {r.phone && <a href={whatsappLink(r.phone, text)} target="_blank" rel="noopener" className="btn btn-ghost flex-1">WhatsApp</a>}

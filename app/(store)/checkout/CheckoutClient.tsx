@@ -8,6 +8,7 @@ import { placeOrderAction } from "@/app/actions/store";
 import { cn } from "@/lib/utils";
 import type { BankAccount } from "@/lib/data/bank";
 import { BankDetails } from "@/components/store/BankDetails";
+import { saveTracking } from "@/lib/client/my-tracking";
 
 type Pay = "cod" | "gateway" | "bank_transfer" | "pay_at_pickup";
 type Del = "pickup" | "rider" | "courier";
@@ -35,6 +36,7 @@ export default function CheckoutClient({ bank }: { bank: BankAccount | null }) {
         <p className="mt-3 text-ink-2">{pay === "cod" ? "Please tap Confirm on the WhatsApp message we just sent — we dispatch once you confirm." : pay === "bank_transfer" ? "Transfer the amount below, then upload your receipt so we can confirm your order. We hold your items for 24 hours." : "We'll message you on WhatsApp with updates."}</p>
         {pay === "bank_transfer" && <div className="mt-6 text-left"><BankDetails bank={bank} amount={done.total || undefined} reference={done.orderNo} /></div>}
         <Link href={`/track/${done.orderNo}?t=${done.token}`} className="btn btn-primary mt-8">{pay === "bank_transfer" ? "Upload transfer receipt" : "Track your order"}</Link>
+        <p className="mt-4 text-sm text-ink-3">Closed this page? Tap <b>Track</b> at the top of the website any time and enter <b className="font-mono">{done.orderNo}</b> + your mobile number.</p>
       </div>
     );
   }
@@ -66,6 +68,7 @@ export default function CheckoutClient({ bank }: { bank: BankAccount | null }) {
           clear();
           if (r.data.payUrl) { window.location.href = r.data.payUrl; return; }
           setDone({ orderNo: r.data.orderNo, token: r.data.token, total: r.data.total });
+          saveTracking({ no: r.data.orderNo, url: `/track/${r.data.orderNo}?t=${r.data.token}`, kind: "order" });
         });
       }}
     >

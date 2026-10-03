@@ -370,6 +370,23 @@ begin
   returning id, sale_no into v_sale, v_no;
 
   for it in select * from jsonb_array_elements(p->'items') loop
+    -- Custom line (no barcode / service / misc item): no stock movement, zero cost.
+    if it->>'variant_id' is null then
+      v_unit_price := (it->>'unit_price')::bigint;
+      if v_unit_price is null or v_unit_price < 0 or coalesce((it->>'qty')::int, 0) <= 0 then raise exception 'custom_line_needs_price_and_qty'; end if;
+      v_disc := coalesce((it->>'discount')::bigint, 0);
+      v_line := (it->>'qty')::int * v_unit_price - v_disc;
+      if v_line < 0 then raise exception 'negative_line_total'; end if;
+      if v_disc > 0 and not v_trusted and not public.has_permission('pos.discount') then raise exception 'permission_denied: pos.discount'; end if;
+      k := coalesce(nullif(it->>'revenue_account', ''), '40100');
+      if k not in ('40100','40200','40400','40500') then raise exception 'invalid_revenue_account'; end if;
+      insert into public.sale_items (sale_id, variant_id, description, qty, unit_price, discount, line_total, cost_at_sale, revenue_account)
+      values (v_sale, null, coalesce(nullif(trim(it->>'description'), ''), 'Custom item'), (it->>'qty')::int, v_unit_price, v_disc, v_line, 0, k::int);
+      v_rev := jsonb_set(v_rev, array[k], to_jsonb(coalesce((v_rev->>k)::bigint, 0) + (it->>'qty')::int * v_unit_price));
+      v_subtotal := v_subtotal + (it->>'qty')::int * v_unit_price;
+      v_disc_total := v_disc_total + v_disc;
+      continue;
+    end if;
     select v.*, c.revenue_account, pr.name as product_name, coalesce(v.warranty_days, pr.warranty_days) as wdays
       into v_var
       from public.product_variants v join public.products pr on pr.id = v.product_id
@@ -456,7 +473,7 @@ begin
   update public.sales set subtotal = v_subtotal, discount_total = v_disc_total, total = v_total,
          cost_total = v_cost_total, journal_entry_id = v_je where id = v_sale;
   -- Stock leaves after the journal exists so every movement links to it.
-  for v_var in select si.variant_id, si.qty, si.serial_unit_id from public.sale_items si where si.sale_id = v_sale loop
+  for v_var in select si.variant_id, si.qty, si.serial_unit_id from public.sale_items si where si.sale_id = v_sale and si.variant_id is not null loop
     perform public._move_stock(v_var.variant_id, v_loc, -v_var.qty, 'sale', 'sale', v_sale::text,
                                null, v_offline, v_je, v_var.serial_unit_id);
   end loop;
@@ -558,8 +575,8 @@ begin
   v_je := public._post_journal(null, 'Return on sale #' || s.sale_no, 'sales_return', v_ret::text, v_lines, v_session);
 
   for it in select * from jsonb_array_elements(p->'items') loop
-    if coalesce((it->>'restock')::boolean, true) then
-      select * into si from public.sale_items where id = (it->>'sale_item_id')::uuid;
+    select * into si from public.sale_items where id = (it->>'sale_item_id')::uuid;
+    if coalesce((it->>'restock')::boolean, true) and si.variant_id is not null then
       perform public._move_stock(si.variant_id, coalesce(s.location_id, public.location_id('COUNTER')), (it->>'qty')::int,
                                  'return_in', 'return', v_ret::text, si.cost_at_sale, false, v_je);
       if si.serial_unit_id is not null then

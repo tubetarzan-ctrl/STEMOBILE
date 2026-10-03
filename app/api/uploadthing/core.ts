@@ -36,7 +36,7 @@ export const uploadRouter = {
     .onUploadComplete(({ file }) => ({ url: file.ufsUrl, key: file.key })),
 
   /** Product photos (Inventory). */
-  productImage: f({ image: { maxFileSize: "8MB", maxFileCount: 8 } })
+  productImage: f({ image: { maxFileSize: "8MB", maxFileCount: 60 } })
     .middleware(() => staffWith("inventory.edit"))
     .onUploadComplete(({ file }) => ({ url: file.ufsUrl, key: file.key })),
 } satisfies FileRouter;

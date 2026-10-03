@@ -76,7 +76,24 @@ export async function placeOrderAction(input: z.infer<typeof OrderSchema>): Prom
       .then(() => supabaseAdmin().from("cod_confirmations").update({ sent_at: new Date().toISOString() }).eq("order_id", r.order_id))
       .catch(() => {});
   }
+  if (o.paymentMethod !== "cod") {
+    const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+    await sendTemplate(normalizePhone(o.phone), "order_confirmation", [r.order_no, String(Number(r.total) / 100), `${site}/track/${r.order_no}?t=${r.tracking_token}`], { ref_type: "order", ref_id: r.order_id }).catch(() => {});
+  }
   return { ok: true, data: { orderNo: r.order_no, token: r.tracking_token, total: Number(r.total), payUrl } };
+}
+
+// --- Track without an account: order/job number + phone --------------------------------
+export type TrackHit = { no: string; status: string; url: string; at: string; total?: number; device?: string };
+export async function trackAction(ref: string, phone: string): Promise<Result<{ orders: TrackHit[]; repairs: TrackHit[] }>> {
+  if (!isValidPKMobile(phone)) return fail("Enter the mobile number you used when ordering/booking.");
+  if (!ref.trim()) return fail("Enter your order number (ST-…) or repair number (RJ-…).");
+  if (!(await rateLimit("track", 10, 60_000))) return fail("Too many attempts — please wait a minute.");
+  if (!hasSupabase) return fail("Tracking is not available in demo mode.");
+  const { data, error } = await supabasePublic().rpc("track_by_phone", { p_phone: phone, p_ref: ref.trim().slice(0, 40) });
+  if (error) return fail("Something went wrong. Please try again.");
+  if (!data) return fail("We couldn't find that number with this phone. Check both and try again, or WhatsApp us.");
+  return { ok: true, data: data as { orders: TrackHit[]; repairs: TrackHit[] } };
 }
 
 // --- Repair booking -----------------------------------------------------------------
@@ -106,8 +123,25 @@ export async function bookRepairAction(input: z.infer<typeof BookingSchema>): Pr
   });
   if (error) return fail(friendly(error.message));
   const r = data as { job_no: string; tracking_ref: string };
+  const site = process.env.NEXT_PUBLIC_SITE_URL ?? "";
+  await sendTemplate(normalizePhone(b.phone), "repair_status", [r.job_no, "booked — please bring your phone to the shop", `${site}/track/${r.tracking_ref}`], { ref_type: "repair" }).catch(() => {});
   await notifyOwner(`New repair booking ${r.job_no}: ${deviceLabel ?? "device"} — ${b.issues.join(", ")} (${b.name})`).catch(() => {});
   return { ok: true, data: { jobNo: r.job_no, trackingRef: r.tracking_ref } };
+}
+
+// --- Chat: visitor leaves a number after the bot hands off -----------------------------
+export async function chatCallbackAction(inquiryId: string, name: string, phone: string): Promise<Result<null>> {
+  if (!isValidPKMobile(phone)) return fail("Enter a valid mobile number, e.g. 0300 1234567");
+  if (!/^[0-9a-f-]{36}$/.test(inquiryId)) return fail("Please try again.");
+  if (!(await rateLimit("chat-callback", 5, 60_000))) return fail("Too many attempts — please wait a minute.");
+  if (!hasSupabase) return { ok: true, data: null };
+  // only a fresh, still-anonymous chat inquiry can be claimed
+  const since = new Date(Date.now() - 6 * 3600_000).toISOString();
+  const { error } = await supabaseAdmin().from("inquiries").update({ name: name.trim().slice(0, 80) || null, phone: normalizePhone(phone), priority: "high" })
+    .eq("id", inquiryId).eq("kind", "chat").is("phone", null).gte("created_at", since);
+  if (error) return fail("Please try again.");
+  await notifyOwner(`Website chat: ${name || "visitor"} (${normalizePhone(phone)}) wants a reply — see Inbox.`).catch(() => {});
+  return { ok: true, data: null };
 }
 
 // --- Inquiries (quick, trade, special order, contact) -------------------------------

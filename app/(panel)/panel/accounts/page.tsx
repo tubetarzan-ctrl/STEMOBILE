@@ -3,6 +3,9 @@ import { supabaseAdmin } from "@/lib/supabase/server";
 import { formatPKR } from "@/lib/money";
 import { PageHead, StatusPill } from "@/components/panel/ui";
 import { ExpenseForm, JournalForm, PeriodTools, ReverseButton } from "./AccountsClient";
+import { EasyEntry, OpeningBalances, ResetTestData } from "./EasyBooks";
+import { businessDate } from "@/lib/time";
+import { Kpi } from "@/components/panel/ui";
 
 export default async function AccountsPage({ searchParams }: { searchParams: Promise<{ source?: string }> }) {
   const staff = await requirePermission("reports.financial.view", "redirect");
@@ -16,18 +19,58 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
     sb.from("fixed_assets").select("id, name, cost, acquired_on, life_months, status, depreciation_runs(amount)"),
   ]);
   const acc = accounts ?? [];
+  const today = businessDate();
+  const monthStart = `${today.slice(0, 7)}-01`;
+  const [{ data: tb }, { data: pl }, { data: suppliers }, { data: khata }] = await Promise.all([
+    sb.rpc("report_trial_balance", { p_as_of: null }),
+    sb.rpc("report_profit_loss", { p_from: monthStart, p_to: today }),
+    sb.from("suppliers").select("id, name").order("name"),
+    sb.from("trade_accounts").select("customer_id, shop_name, customers(name, phone)").eq("status", "approved"),
+  ]);
+  const bal = (codes: number[]) => ((tb ?? []) as { code: number; balance: number }[]).filter((r) => codes.includes(r.code)).reduce((a, r) => a + Number(r.balance), 0);
+  const plRows = (pl ?? []) as { code: number; amount: number }[];
+  const income = plRows.filter((r) => r.code < 50000).reduce((a, r) => a + Number(r.amount), 0);
+  const costs = -plRows.filter((r) => r.code >= 50000).reduce((a, r) => a + Number(r.amount), 0);
 
   return (
     <div className="space-y-10">
-      <PageHead title="Accounts" sub="Double-entry. Posted journals are immutable — corrections by reversal." />
-      <div className="grid gap-6 xl:grid-cols-2">
+      <PageHead title="Accounts" sub="Everything from POS, repairs, orders, purchases and the daily closing posts here automatically. Use Easy Books for money that moved outside the POS." />
+
+      <section className="space-y-3">
+        <h2 className="font-display text-xl font-semibold">Aaj tak ka hisaab (where the money is)</h2>
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+          <Kpi label="Cash in shop" value={formatPKR(bal([10100, 10110]))} />
+          <Kpi label="Bank + wallets" value={formatPKR(bal([10200, 10300, 10400]))} />
+          <Kpi label="Customers owe us (khata)" value={formatPKR(bal([11000, 11100]))} />
+          <Kpi label="We owe suppliers" value={formatPKR(bal([20100]))} />
+          <Kpi label="Stock value (at cost)" value={formatPKR(bal([12000]))} />
+          <Kpi label="This month: sales & income" value={formatPKR(income)} />
+          <Kpi label="This month: costs & kharcha" value={formatPKR(costs)} />
+          <Kpi label="This month: profit" value={formatPKR(income - costs)} hint={income - costs < 0 ? "loss" : undefined} />
+        </div>
+      </section>
+
+      {can(staff, "accounts.expense") && (
+        <EasyEntry
+          expenses={acc.filter((a) => a.code >= 60000 && a.code < 70000).map((a) => ({ code: a.code, name: a.name }))}
+          suppliers={(suppliers ?? []).map((x) => ({ id: x.id, name: x.name }))}
+          customers={(khata ?? []).map((k) => { const c = k.customers as unknown as { name: string | null; phone: string } | null; return { id: k.customer_id, name: `${k.shop_name ?? c?.name ?? ""} · ${c?.phone ?? ""}` }; })}
+        />
+      )}
+      {can(staff, "accounts.journal.create") && <OpeningBalances />}
+
+      <details className="space-y-6">
+        <summary className="cursor-pointer font-display text-xl font-semibold">Accountant tools (journal entry, month/year close)</summary>
+      <div className="mt-4 grid gap-6 xl:grid-cols-2">
         {can(staff, "accounts.expense") && <ExpenseForm accounts={acc} />}
         {can(staff, "accounts.journal.create") && <JournalForm accounts={acc} />}
       </div>
-      {can(staff, "accounts.period.close") && <PeriodTools />}
+      <div className="mt-6">{can(staff, "accounts.period.close") && <PeriodTools />}</div>
+      </details>
 
       <section>
-        <h2 className="mb-3 font-display text-xl font-semibold">Journal</h2>
+        <h2 className="font-display text-xl font-semibold">Journal (every entry)</h2>
+        <p className="mb-3 text-sm text-ink-3">Wrong entry? Open it and press <b>Reverse</b> — that cancels it exactly and keeps the history. Entries are never deleted (that keeps the books honest).</p>
         <div className="space-y-2">
           {(entries ?? []).map((e) => (
             <details key={e.id} className="card p-4">
@@ -61,6 +104,7 @@ export default async function AccountsPage({ searchParams }: { searchParams: Pro
           </table>
         </section>
       </div>
+      {staff.isOwner && <ResetTestData />}
     </div>
   );
 }

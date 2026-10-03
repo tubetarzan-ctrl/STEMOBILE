@@ -10,6 +10,13 @@ export async function setInquiryStatusAction(id: string, status: "open" | "waiti
   revalidatePath("/panel/inbox");
 }
 
+/** Save the answer / note on an inquiry and mark it answered. */
+export async function answerInquiryAction(id: string, note: string, close: boolean) {
+  const staff = await requirePermission("inbox.manage");
+  await supabaseAdmin().from("inquiries").update({ notes: note || null, assigned_to: staff.id, status: close ? "closed" : "open" }).eq("id", id);
+  revalidatePath("/panel/inbox");
+}
+
 export async function replyWhatsAppAction(threadId: string, phone: string, text: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const staff = await requirePermission("inbox.manage");
   try {

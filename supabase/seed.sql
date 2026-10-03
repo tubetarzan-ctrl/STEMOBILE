@@ -29,7 +29,8 @@ insert into public.price_tiers (key, name, discount_pct) values
 -- --- Brands, devices ----------------------------------------------------------------
 insert into public.brands (name, slug, sort) values
   ('Apple','apple',1),('Samsung','samsung',2),('Xiaomi','xiaomi',3),('Oppo','oppo',4),('Vivo','vivo',5),
-  ('Infinix','infinix',6),('Tecno','tecno',7),('Realme','realme',8),('Google','google',9),('Generic','generic',99);
+  ('Infinix','infinix',6),('Tecno','tecno',7),('Realme','realme',8),('Google','google',9),('Generic','generic',99)
+on conflict (name) do update set sort = excluded.sort;
 
 insert into public.devices (brand_id, name, slug, model_numbers, release_year)
 select b.id, d.name, d.slug, d.models, d.yr from (values
@@ -63,7 +64,8 @@ select b.id, d.name, d.slug, d.models, d.yr from (values
   ('Tecno','Camon 20','tecno-camon-20','{CK6n}',2023),
   ('Realme','C55','realme-c55','{RMX3710}',2023),
   ('Google','Pixel 7','pixel-7','{GVU6C,GQML3}',2022)
-) as d(brand, name, slug, models, yr) join public.brands b on b.name = d.brand;
+) as d(brand, name, slug, models, yr) join public.brands b on b.name = d.brand
+on conflict (brand_id, name) do update set slug = excluded.slug, model_numbers = excluded.model_numbers, release_year = excluded.release_year;
 
 -- --- Categories ---------------------------------------------------------------------
 insert into public.categories (name, name_ur, slug, kind, revenue_account, sort) values

@@ -6,6 +6,8 @@ import { formatDateTime } from "@/lib/time";
 import { gradeLabel } from "@/lib/grades";
 import { PageHead, StatusPill } from "@/components/panel/ui";
 import { JobActions } from "./JobActions";
+import { Receipt } from "@/components/receipt/Receipt";
+import { JobDetails } from "./JobEditor";
 
 export default async function RepairJobPage({ params }: { params: Promise<{ id: string }> }) {
   const staff = await requirePermission("repairs.view", "redirect");
@@ -13,11 +15,12 @@ export default async function RepairJobPage({ params }: { params: Promise<{ id: 
   const sb = supabaseAdmin();
   const { data: j } = await sb.from("repair_jobs").select("*, customers(name, phone), devices(name), profiles(full_name)").eq("id", id).maybeSingle();
   if (!j) notFound();
-  const [{ data: parts }, { data: history }, { data: checklists }, { data: sessions }] = await Promise.all([
+  const [{ data: parts }, { data: history }, { data: checklists }, { data: sessions }, { data: techs }] = await Promise.all([
     sb.from("repair_parts").select("id, qty, unit_price, unit_cost, grade, product_variants(sku, products(name))").eq("job_id", id),
     sb.from("repair_status_history").select("status, note, at").eq("job_id", id).order("at"),
     sb.from("repair_checklists").select("kind, items").eq("job_id", id),
     sb.from("drawer_sessions").select("id").eq("status", "open").limit(1),
+    sb.from("profiles").select("id, full_name").eq("is_staff", true).eq("is_active", true).order("full_name"),
   ]);
   const c = j.customers as { name: string; phone: string };
   const partsTotal = (parts ?? []).reduce((a, p) => a + p.qty * Number(p.unit_price), 0);
@@ -73,14 +76,32 @@ export default async function RepairJobPage({ params }: { params: Promise<{ id: 
         <aside className="space-y-4">
           <JobActions job={{ id: j.id, status: j.status, total, advance: Number(j.advance), deviceId: j.device_id }} sessionId={sessions?.[0]?.id ?? null}
             canManage={can(staff, "repairs.manage")} canDeliver={can(staff, "repairs.deliver")} />
-          <div id="receipt" className="card space-y-1 p-4 font-mono text-xs">
-            <p className="text-center font-bold">StarTech · Job card {j.job_no}</p>
-            <p>{c.name} · {c.phone}</p>
-            <p>{(j.devices as { name: string } | null)?.name ?? j.device_label} · IMEI {j.imei ?? "—"}</p>
-            <p className="capitalize">Issue: {(j.issues as string[]).join(", ").replace(/_/g, " ")}</p>
-            <p>Estimate {formatPKR(j.estimate)} · Advance {formatPKR(j.advance)}</p>
-            <p>Promised {formatDateTime(j.promised_at)}</p>
-            <p>Track: {site}/track/{j.tracking_ref}</p>
+          {can(staff, "repairs.manage") && !["delivered", "cancelled", "returned_unrepaired"].includes(j.status) && (
+            <JobDetails job={{ id: j.id, status: j.status, technician_id: j.technician_id, labour: Number(j.labour), estimate: Number(j.estimate), promised_at: j.promised_at, imei: j.imei, notes: j.notes }}
+              techs={(techs ?? []).map((t) => ({ id: t.id, full_name: t.full_name ?? "Staff" }))} />
+          )}
+          <div className="card overflow-hidden p-2">
+            <Receipt
+              title={j.status === "delivered" ? "REPAIR INVOICE" : "REPAIR RECEIPT"} number={j.job_no} at={j.created_at}
+              customer={{ name: c.name, phone: c.phone }}
+              meta={[
+                ["Device", (j.devices as { name: string } | null)?.name ?? j.device_label ?? "—"],
+                ["IMEI", j.imei ?? "—"],
+                ["Problem", (j.issues as string[]).join(", ").replace(/_/g, " ")],
+                ["Ready by", j.promised_at ? formatDateTime(j.promised_at) : "We'll WhatsApp you"],
+              ]}
+              lines={[
+                ...(parts ?? []).map((p) => { const v = p.product_variants as unknown as { products: { name: string } }; return { name: v.products.name, note: gradeLabel(p.grade), qty: p.qty, unit: Number(p.unit_price) }; }),
+                ...(Number(j.labour) > 0 ? [{ name: "Labour", qty: 1, unit: Number(j.labour) }] : []),
+              ]}
+              totals={[
+                ...(total > 0 ? [["Total", total, true] as [string, number, boolean]] : [["Estimate", Number(j.revised_estimate ?? j.estimate), true] as [string, number, boolean]]),
+                ["Advance paid", Number(j.advance)],
+                ["Balance due", Math.max(0, (total || Number(j.revised_estimate ?? j.estimate)) - Number(j.advance)), true],
+              ]}
+              note="Bring this receipt (or your job number + phone) to collect. Not responsible for data loss — please back up. Phones not collected within 60 days may be disposed of."
+              trackUrl={`${site.replace(/^https?:\/\//, "")}/track/${j.tracking_ref}`}
+            />
           </div>
         </aside>
       </div>

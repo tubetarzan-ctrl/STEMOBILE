@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { requirePermission, can } from "@/lib/auth/permissions";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import { PageHead } from "@/components/panel/ui";
 import { SECTION_LIBRARY } from "@/lib/cms/sections";
@@ -9,7 +9,7 @@ import { HeroMediaPanel, PageToolbar, ReelsPanel, RollbackButton, SectionList } 
 
 export default async function WebsiteManager({ searchParams }: { searchParams: Promise<{ page?: string }> }) {
   const staff = await requirePermission("content.edit", "redirect");
-  const sb = await supabaseServer();
+  const sb = supabaseAdmin();
   const { data: pages } = await sb.from("site_pages").select("id, slug, title_en, status, published_at").is("deleted_at", null).order("slug");
   const sp = await searchParams;
   const page = pages?.find((p) => p.id === sp.page) ?? pages?.find((p) => p.slug === "") ?? pages?.[0];

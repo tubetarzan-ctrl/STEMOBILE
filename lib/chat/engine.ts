@@ -21,7 +21,7 @@ import {
 export type ChatCtx = { deviceId?: string; deviceName?: string; category?: string; grade?: Grade; repair?: boolean };
 export type ChatItem = { title: string; sub?: string; price?: number; stock?: "in" | "low" | "out"; href?: string };
 export type ChatAction = { label: string; href: string; kind?: "call" | "whatsapp" | "link" };
-export type ChatReply = { text: string; items?: ChatItem[]; actions?: ChatAction[]; chips?: string[]; ctx?: ChatCtx; source: "rules" | "faq" | "ai" | "handoff" };
+export type ChatReply = { text: string; items?: ChatItem[]; actions?: ChatAction[]; chips?: string[]; ctx?: ChatCtx; source: "rules" | "faq" | "ai" | "handoff"; callbackId?: string };
 
 const CAT_LABEL: Record<string, string> = {
   displays: "screen / LCD", batteries: "battery", "back-glass": "back glass", "charging-ports": "charging port", cameras: "camera",
@@ -44,8 +44,10 @@ export async function answerChat(message: string, ctxIn: ChatCtx = {}): Promise<
   const phone = formatPhonePK(biz.phone);
 
   const handoff = async (lead: string): Promise<ChatReply> => {
+    let callbackId: string | undefined;
     if (hasSupabase && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      await supabaseAdmin().from("inquiries").insert({ kind: "chat", message: text, meta: { source: "website_chat" } }).then(() => {}, () => {});
+      const { data } = await supabaseAdmin().from("inquiries").insert({ kind: "chat", message: text, meta: { source: "website_chat" } }).select("id").single();
+      callbackId = data?.id;
     }
     return {
       text: `${lead} Please call or WhatsApp us on ${phone} — our team will answer right away. I've prepared a WhatsApp message for you.`,
@@ -54,6 +56,7 @@ export async function answerChat(message: string, ctxIn: ChatCtx = {}): Promise<
         { label: "Send on WhatsApp", href: whatsappLink(biz.whatsapp, `Hi StarTech, I have a question: ${text}`), kind: "whatsapp" },
       ],
       source: "handoff",
+      callbackId,
     };
   };
 

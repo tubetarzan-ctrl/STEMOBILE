@@ -277,7 +277,7 @@ begin
 
   v_flag := case
     when t ~* '(https?://|www\.|\.com\b)' then 'contains_link'
-    when t ~* public.setting('reviews.profanity_regex', '"\\m(fuck|shit|bitch|harami|kutta|kanjar|bhenchod|madarchod)\\M"') #>> '{}' then 'profanity'
+    when t ~* (public.setting('reviews.profanity_regex', '"\\m(fuck|shit|bitch|harami|kutta|kanjar|bhenchod|madarchod)\\M"') #>> '{}') then 'profanity'
     when t ~ '(.)\1{7,}' or t ~* '\m(\w+)\M(\s+\1\M){4,}' then 'repeated_text'
     when v_recent >= 3 then 'too_many_from_phone'
     when jsonb_array_length(coalesce(p->'media', '[]')) > 7 then 'too_much_media'

@@ -1,17 +1,17 @@
 import Link from "next/link";
 import { requirePermission } from "@/lib/auth/permissions";
-import { supabaseServer } from "@/lib/supabase/server";
+import { supabaseAdmin } from "@/lib/supabase/server";
 import { formatDateTime } from "@/lib/time";
 import { Empty, Kpi, PageHead, StatusPill } from "@/components/panel/ui";
 import { cn } from "@/lib/utils";
-import { GoogleReply, ReviewControls } from "./ReviewsClient";
+import { AddReview, GoogleReply, ReviewControls } from "./ReviewsClient";
 
 const TABS = ["pending", "published", "hidden", "rejected", "google"] as const;
 
 export default async function ReviewsManager({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requirePermission("reviews.moderate", "redirect");
   const { tab = "pending" } = await searchParams;
-  const sb = await supabaseServer();
+  const sb = supabaseAdmin();
   const [{ data: stats }, list] = await Promise.all([
     sb.from("v_review_stats").select("*").maybeSingle(),
     tab === "google"
@@ -22,14 +22,15 @@ export default async function ReviewsManager({ searchParams }: { searchParams: P
 
   return (
     <div className="space-y-6">
-      <PageHead title="Reviews" sub="Moderate on-site reviews, reply publicly, feature the best, and answer Google reviews." />
+      <PageHead title="Reviews" sub="New reviews wait in Pending → Approve to show them. Reply publicly, feature the best, hide or delete. Customer star ratings can't be changed." />
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <Kpi label="On-site rating" value={s?.onsite_avg ? `${Number(s.onsite_avg).toFixed(2)}★` : "—"} hint={`${s?.onsite_count ?? 0} published`} />
         <Kpi label="Google rating" value={s?.google_avg ? `${Number(s.google_avg).toFixed(2)}★` : "—"} hint={`${s?.google_count ?? 0} synced`} />
         <Kpi label="Requests → reviews" value={`${s?.reviews_from_requests ?? 0} / ${s?.requests_sent ?? 0}`} />
         <Kpi label="Google follow-up clicks" value={s?.google_clicks ?? 0} />
       </div>
-      <nav className="flex gap-1 border-b border-line">{TABS.map((t) => <Link key={t} href={`/admin/reviews?tab=${t}`} className={cn("border-b-2 px-4 py-2 text-sm capitalize", tab === t ? "border-accent" : "border-transparent text-ink-3")}>{t}</Link>)}</nav>
+      <AddReview />
+      <nav className="flex gap-1 overflow-x-auto border-b border-line">{TABS.map((t) => <Link key={t} href={`/admin/reviews?tab=${t}`} className={cn("border-b-2 px-4 py-2 text-sm capitalize", tab === t ? "border-accent" : "border-transparent text-ink-3")}>{t}</Link>)}</nav>
       {!list.data?.length ? <Empty>Nothing here.</Empty> : tab === "google" ? (
         <div className="space-y-2">{(list.data as { google_review_id: string; author: string; rating: number; text: string; time: string; reply: string | null }[]).map((g) => (
           <div key={g.google_review_id} className="card space-y-2 p-4">

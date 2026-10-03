@@ -1,15 +1,23 @@
 "use client";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { replyWhatsAppAction, setInquiryStatusAction } from "./actions";
+import { answerInquiryAction, replyWhatsAppAction, setInquiryStatusAction } from "./actions";
 import { whatsappLink } from "@/lib/utils";
 
-export function InquiryStatus({ id, phone }: { id: string; phone: string | null }) {
+export function InquiryStatus({ id, phone, message, notes }: { id: string; phone: string | null; message: string; notes: string | null }) {
   const [pending, start] = useTransition();
+  const [reply, setReply] = useState(notes ?? "");
   return (
-    <div className="flex gap-1">
-      {phone && <a href={whatsappLink(phone)} target="_blank" rel="noopener" className="btn btn-ghost btn-sm">WhatsApp</a>}
-      <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => start(async () => { await setInquiryStatusAction(id, "closed"); })}>Close</button>
+    <div className="flex w-full flex-col gap-2 sm:w-72">
+      <textarea value={reply} onChange={(e) => setReply(e.target.value)} rows={3} className="input text-sm" placeholder={phone ? "Type your answer…" : "Internal note (no phone number left)"} />
+      <div className="flex flex-wrap gap-1">
+        {phone && (
+          <a href={whatsappLink(phone, reply || `Assalam-o-Alaikum! StarTech here about your question: "${message.slice(0, 120)}"`)} target="_blank" rel="noopener" className="btn btn-primary btn-sm"
+            onClick={() => start(async () => { await answerInquiryAction(id, reply, true); })}>Reply on WhatsApp</a>
+        )}
+        <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => start(async () => { await answerInquiryAction(id, reply, true); })}>Mark answered</button>
+        <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => start(async () => { await setInquiryStatusAction(id, "closed"); })}>Close</button>
+      </div>
     </div>
   );
 }

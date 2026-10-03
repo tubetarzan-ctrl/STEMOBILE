@@ -1,6 +1,6 @@
 "use client";
 import { useState, useTransition } from "react";
-import { closeDrawerAction, runDailyClosingAction, verifyDayAction } from "@/app/actions/panel";
+import { closeDrawerAction, runDailyClosingAction, unverifyDayAction, verifyDayAction } from "@/app/actions/panel";
 import { formatPKR } from "@/lib/money";
 import { cn } from "@/lib/utils";
 
@@ -58,6 +58,7 @@ export function DayActions({ date, status }: { date: string | null; status: stri
       </form>
     );
   }
+  if (status === "verified") return <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => start(async () => { const r = await unverifyDayAction(date); setMsg(r.ok ? "Unverified" : r.error); })}>{msg ?? "Mark unverified"}</button>;
   if (status !== "closed") return null;
   return <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => start(async () => { const r = await verifyDayAction(date); setMsg(r.ok ? "Verified" : r.error); })}>{msg ?? "Mark verified"}</button>;
 }

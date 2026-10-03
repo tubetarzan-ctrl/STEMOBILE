@@ -12,7 +12,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
   const sb = supabaseAdmin();
   return (
     <div>
-      <PageHead title="Inbox" sub="Website forms, escalated WhatsApp chats and email — one list." />
+      <PageHead title="Inbox" sub="Questions the chat bot could not answer, website forms and WhatsApp. Reply on WhatsApp, then Mark answered. Questions the bot answered never appear here." />
       <nav className="mb-6 flex gap-1 border-b border-line">
         {[["inquiries", "Inquiries & email"], ["whatsapp", "WhatsApp"]].map(([k, l]) => <Link key={k} href={`/panel/inbox?tab=${k}`} className={cn("border-b-2 px-4 py-2 text-sm", tab === k ? "border-accent" : "border-transparent text-ink-3")}>{l}</Link>)}
       </nav>
@@ -30,11 +30,11 @@ async function Inquiries({ sb }: { sb: SB }) {
     <div className="space-y-2">{data.map((i) => (
       <div key={i.id} className={cn("card flex flex-wrap items-start justify-between gap-3 p-4", i.priority === "high" && "border-warn/60")}>
         <div className="min-w-0 flex-1">
-          <p className="flex flex-wrap items-center gap-2 text-sm"><span className="badge capitalize">{i.kind.replace("_", " ")}</span>{i.priority === "high" && <span className="badge text-warn">priority</span>}<span className="font-medium">{i.name ?? i.email}</span><span className="text-ink-3">{i.phone ?? i.email} · {formatDateTime(i.created_at)}</span></p>
+          <p className="flex flex-wrap items-center gap-2 text-sm"><span className="badge capitalize">{i.kind === "chat" ? "website chat — bot couldn't answer" : i.kind.replace("_", " ")}</span>{i.priority === "high" && <span className="badge text-warn">priority</span>}<span className="font-medium">{i.name ?? i.email}</span><span className="text-ink-3">{i.phone ?? i.email ?? "no number left"} · {formatDateTime(i.created_at)}</span></p>
           <p className="mt-2 whitespace-pre-line text-sm text-ink-2">{i.message.slice(0, 600)}</p>
           {i.device_text && <p className="mt-1 text-xs text-ink-3">Device: {i.device_text}</p>}
         </div>
-        <div className="flex flex-col items-end gap-2"><StatusPill status={i.status} /><InquiryStatus id={i.id} phone={i.phone} /></div>
+        <div className="flex flex-col items-end gap-2"><StatusPill status={i.status} /><InquiryStatus id={i.id} phone={i.phone} message={i.message} notes={i.notes} /></div>
       </div>
     ))}</div>
   );

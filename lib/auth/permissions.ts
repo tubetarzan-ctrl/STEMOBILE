@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { redirect } from "next/navigation";
-import { hasSupabase, supabaseServer } from "@/lib/supabase/server";
+import { hasSupabase, supabaseAdmin, supabaseServer } from "@/lib/supabase/server";
 
 export type Staff = {
   id: string;
@@ -17,7 +17,10 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
   const sb = await supabaseServer();
   const { data: auth } = await sb.auth.getUser();
   if (!auth.user) return null;
-  const { data: profile } = await sb
+  // Role tables are readable only with staff.manage, so load them with the
+  // service role once the user is authenticated.
+  const admin = supabaseAdmin();
+  const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, role_key, is_staff, is_active")
     .eq("id", auth.user.id)
@@ -26,8 +29,8 @@ export const getStaff = cache(async (): Promise<Staff | null> => {
 
   const isOwner = profile.role_key === "super_admin";
   const [{ data: rolePerms }, { data: overrides }] = await Promise.all([
-    sb.from("role_permissions").select("permission_key").eq("role_key", profile.role_key ?? ""),
-    sb.from("employee_permissions").select("permission_key, granted").eq("profile_id", profile.id),
+    admin.from("role_permissions").select("permission_key").eq("role_key", profile.role_key ?? ""),
+    admin.from("employee_permissions").select("permission_key, granted").eq("profile_id", profile.id),
   ]);
   const perms = new Set<string>((rolePerms ?? []).map((r) => r.permission_key));
   for (const o of overrides ?? []) {

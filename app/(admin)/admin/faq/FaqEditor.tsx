@@ -12,9 +12,11 @@ export function FaqEditor({ faqs }: { faqs: Faq[] }) {
     const r = await saveFaqAction({ ...f, q_ur: f.q_ur ?? undefined, a_ur: f.a_ur ?? undefined, sort: i + 1 }, del);
     setMsg(r.ok ? (del ? "Deleted" : "Saved") : r.error);
     if (r.ok && del) setList((l) => l.filter((_, j) => j !== i));
+    if (r.ok && !del && r.id) setList((l) => l.map((x, j) => (j === i ? { ...x, id: r.id } : x)));
   });
   return (
     <div className="space-y-3">
+      <p className="text-sm text-ink-3">{list.length} questions. Edit the wording and press Save. The chat assistant answers from these.</p>
       {list.map((f, i) => (
         <div key={f.id ?? `new-${i}`} className="card space-y-2 p-4">
           <div className="grid gap-2 md:grid-cols-2">
@@ -23,9 +25,13 @@ export function FaqEditor({ faqs }: { faqs: Faq[] }) {
             <textarea className="input" rows={3} value={f.a_en} placeholder="Answer (English)" onChange={(e) => setList((l) => l.map((x, j) => (j === i ? { ...x, a_en: e.target.value } : x)))} />
             <textarea className="input urdu" dir="rtl" lang="ur" rows={3} value={f.a_ur ?? ""} placeholder="جواب (اردو)" onChange={(e) => setList((l) => l.map((x, j) => (j === i ? { ...x, a_ur: e.target.value } : x)))} />
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="mr-2 flex items-center gap-1.5 text-sm">
+              <input type="checkbox" checked={f.visible !== false} onChange={(e) => setList((l) => l.map((x, j) => (j === i ? { ...x, visible: e.target.checked } : x)))} />
+              Show on website
+            </label>
             <button className="btn btn-primary btn-sm" disabled={pending || !f.q_en || !f.a_en} onClick={() => save(f, i)}>Save</button>
-            {f.id && <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => confirm("Delete this FAQ?") && save(f, i, true)}>Delete</button>}
+            <button className="btn btn-ghost btn-sm" disabled={pending} onClick={() => { if (!confirm("Delete this FAQ?")) return; if (f.id) save(f, i, true); else setList((l) => l.filter((_, j) => j !== i)); }}>Delete</button>
             {i > 0 && <button className="btn btn-ghost btn-sm" onClick={() => setList((l) => { const n = [...l]; [n[i - 1], n[i]] = [n[i], n[i - 1]]; return n; })}>Move up</button>}
           </div>
         </div>

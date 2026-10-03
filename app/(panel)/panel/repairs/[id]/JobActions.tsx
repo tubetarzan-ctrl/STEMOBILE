@@ -1,8 +1,9 @@
 "use client";
 import { useState, useTransition } from "react";
 import { Printer } from "lucide-react";
-import { consumePartAction, deliverRepairAction, saveChecklistAction, updateRepairStatusAction, type ActionResult } from "@/app/actions/panel";
+import { deliverRepairAction, saveChecklistAction, updateRepairStatusAction, type ActionResult } from "@/app/actions/panel";
 import { formatPKR, rupeesToPaisa } from "@/lib/money";
+import { PartPicker } from "./JobEditor";
 
 const NEXT: Record<string, [string, string][]> = {
   booked: [["received", "Check in"]],
@@ -20,7 +21,6 @@ export function JobActions({ job, sessionId, canManage, canDeliver }: { job: { i
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
   const [qc, setQc] = useState<Record<string, string>>(Object.fromEntries(QC.map((k) => [k, "ok"])));
-  const [sku, setSku] = useState("");
   const [method, setMethod] = useState("cash");
   const run = (fn: () => Promise<ActionResult>, ok?: string) => start(async () => { const r = await fn(); setMsg(r.ok ? ok ?? null : r.error); });
   const due = Math.max(0, job.total - job.advance);
@@ -41,21 +41,7 @@ export function JobActions({ job, sessionId, canManage, canDeliver }: { job: { i
         </div>
       )}
 
-      {canManage && ["diagnosing", "in_repair", "awaiting_parts", "received"].includes(job.status) && (
-        <div className="card space-y-2 p-4">
-          <h2 className="font-medium">Use a part from stock</h2>
-          <div className="flex gap-2">
-            <input value={sku} onChange={(e) => setSku(e.target.value)} className="input h-10" placeholder="SKU / barcode" />
-            <button type="button" className="btn btn-ghost btn-sm" disabled={pending || !sku} onClick={() => run(async () => {
-              const v = await fetch(`/api/panel/variant?sku=${encodeURIComponent(sku)}`).then((r) => r.json());
-              if (!v.id) return { ok: false, error: "SKU not found" } as ActionResult;
-              const r = await consumePartAction(job.id, v.id, 1);
-              if (r.ok) setSku("");
-              return r;
-            }, "Part booked out (COGS posted)")}>Use part</button>
-          </div>
-        </div>
-      )}
+      {canManage && !["booked", "ready", "delivered", "cancelled", "returned_unrepaired"].includes(job.status) && <PartPicker jobId={job.id} />}
 
       {canManage && job.status === "quality_check" && (
         <div className="card space-y-2 p-4">
@@ -78,7 +64,7 @@ export function JobActions({ job, sessionId, canManage, canDeliver }: { job: { i
         </div>
       )}
 
-      <button type="button" onClick={() => window.print()} className="btn btn-ghost w-full"><Printer className="size-4" />Print job card</button>
+      <button type="button" onClick={() => window.print()} className="btn btn-ghost w-full"><Printer className="size-4" />Print customer receipt</button>
       {msg && <p className="text-sm">{msg}</p>}
     </div>
   );

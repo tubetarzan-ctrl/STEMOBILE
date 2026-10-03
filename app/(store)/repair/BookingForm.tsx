@@ -3,6 +3,7 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 import { bookRepairAction } from "@/app/actions/store";
+import { saveTracking } from "@/lib/client/my-tracking";
 import { ISSUES } from "@/lib/grades";
 import { cn } from "@/lib/utils";
 
@@ -19,6 +20,7 @@ export function BookingForm({ devices, initial }: { devices: { id: string; name:
         <p className="font-display text-2xl font-semibold">Booked — {done.jobNo}</p>
         <p className="text-ink-2">We&apos;ve sent the details on WhatsApp. Bring your phone and charger.</p>
         <Link href={`/track/${done.trackingRef}`} className="btn btn-primary mt-2">Open live tracker</Link>
+        <p className="text-sm text-ink-3">Later, tap <b>Track</b> at the top of the website and enter <b className="font-mono">{done.jobNo}</b> + your mobile number.</p>
       </div>
     );
   }
@@ -35,7 +37,7 @@ export function BookingForm({ devices, initial }: { devices: { id: string; name:
             deviceLabel: String(f.get("other") || "") || undefined, issues, notes: String(f.get("notes") || "") || undefined,
             preferredAt: f.get("when") ? new Date(String(f.get("when"))).toISOString() : undefined,
           });
-          if (r.ok) setDone(r.data); else setError(r.error);
+          if (r.ok) { setDone(r.data); saveTracking({ no: r.data.jobNo, url: `/track/${r.data.trackingRef}`, kind: "repair" }); } else setError(r.error);
         });
       }}
     >

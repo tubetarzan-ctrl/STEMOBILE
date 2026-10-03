@@ -6,10 +6,21 @@ import { useDevice } from "@/lib/client/stores";
 import type { Device } from "@/lib/data/types";
 import { cn } from "@/lib/utils";
 
+// Shown before the customer types: newest, most-asked-for models first.
+const POPULAR = [
+  "iPhone 17 Pro Max", "iPhone 17 Pro", "iPhone 17", "iPhone Air", "iPhone 16 Pro Max", "iPhone 16 Pro", "iPhone 16",
+  "iPhone 15 Pro Max", "iPhone 14 Pro Max", "iPhone 13", "iPhone 11", "Galaxy S25 Ultra", "Galaxy S24 Ultra",
+  "Galaxy A56", "Galaxy A55", "Galaxy A54", "Redmi Note 14 Pro", "Redmi Note 13", "Infinix Hot 50", "Tecno Spark 30",
+];
+
 /** Score devices by name / model number (handles "SM-A546E", "a54", "iphone 13"). */
 function match(devices: Device[], q: string): Device[] {
   const s = q.trim().toLowerCase();
-  if (!s) return devices.slice(0, 8);
+  if (!s) {
+    const byName = new Map(devices.map((d) => [d.name.toLowerCase(), d]));
+    const top = POPULAR.map((n) => byName.get(n.toLowerCase()) ?? byName.get(n.toLowerCase().replace(/^(infinix|tecno) /, ""))).filter(Boolean) as Device[];
+    return top.length ? top : devices.slice(0, 20);
+  }
   const compact = s.replace(/[\s-]/g, "");
   return devices
     .map((d) => {
@@ -23,7 +34,7 @@ function match(devices: Device[], q: string): Device[] {
     })
     .filter((x) => x.score > 0)
     .sort((a, b) => b.score - a.score)
-    .slice(0, 8)
+    .slice(0, 30)
     .map((x) => x.d);
 }
 

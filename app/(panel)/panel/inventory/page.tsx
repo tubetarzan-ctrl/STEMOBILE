@@ -17,8 +17,10 @@ export default async function InventoryPage({ searchParams }: { searchParams: Pr
 
   return (
     <div>
-      <PageHead title="Inventory" sub="Stock is the sum of movements; cost is landed weighted average.">
-        {can(staff, "inventory.receive") && <Link href="/panel/inventory/receive" className="btn btn-primary btn-sm">Receive goods</Link>}
+      <PageHead title="Inventory" sub="Stock goes up when you Receive goods or Import opening stock, and down automatically on every sale or repair. Cost = average purchase price.">
+        <Link href="/panel/inventory/products" className="btn btn-primary btn-sm">Products (add / edit / delete)</Link>
+        {can(staff, "inventory.edit") && <Link href="/panel/inventory/import" className="btn btn-ghost btn-sm">Import & photos</Link>}
+        {can(staff, "inventory.receive") && <Link href="/panel/inventory/receive" className="btn btn-ghost btn-sm">Receive goods</Link>}
       </PageHead>
       <nav className="mb-6 flex gap-1 overflow-x-auto border-b border-line" aria-label="Inventory views">
         {TABS.map(([k, l]) => <Link key={k} href={`/panel/inventory?tab=${k}`} className={cn("border-b-2 px-4 py-2 text-sm", tab === k ? "border-accent text-ink" : "border-transparent text-ink-3 hover:text-ink")}>{l}</Link>)}

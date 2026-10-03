@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { Search } from "lucide-react";
+import { PackageSearch, Search } from "lucide-react";
 import { getAnnouncement } from "@/lib/data/store";
 import { getLang, pick, t } from "@/lib/i18n";
 import { CartButton, PrefsToggles } from "./HeaderClient";
@@ -41,6 +41,9 @@ export async function Header() {
             </label>
           </form>
           <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1 lg:ml-0">
+            <Link href="/track" aria-label="Track order or repair" className="flex h-9 items-center gap-1.5 rounded-lg border border-accent/40 px-2 text-sm font-medium text-accent hover:bg-surface-2 sm:px-3">
+              <PackageSearch className="size-4" aria-hidden /><span className="hidden sm:inline">Track</span>
+            </Link>
             <PrefsToggles lang={lang} mode={mode} />
             <CartButton />
           </div>

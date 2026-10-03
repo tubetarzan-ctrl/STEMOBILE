@@ -5,10 +5,11 @@ import { MessageCircle, Phone, Send, X } from "lucide-react";
 import { formatPKR } from "@/lib/money";
 import { cn } from "@/lib/utils";
 import { AssistantAvatar } from "./AssistantAvatar";
+import { chatCallbackAction } from "@/app/actions/store";
 
 type Item = { title: string; sub?: string; price?: number; stock?: "in" | "low" | "out"; href?: string };
 type Action = { label: string; href: string; kind?: "call" | "whatsapp" | "link" };
-type Msg = { role: "bot" | "user"; text: string; items?: Item[]; actions?: Action[]; chips?: string[] };
+type Msg = { role: "bot" | "user"; text: string; items?: Item[]; actions?: Action[]; chips?: string[]; callbackId?: string };
 type Ctx = Record<string, unknown>;
 
 const KEY = "st_chat_v1";
@@ -75,7 +76,7 @@ export function ChatWidget() {
     try {
       const res = await fetch("/api/chat", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: q, ctx }) });
       const r = await res.json();
-      setMsgs((m) => [...m, { role: "bot", text: r.text, items: r.items, actions: r.actions, chips: r.chips }]);
+      setMsgs((m) => [...m, { role: "bot", text: r.text, items: r.items, actions: r.actions, chips: r.chips, callbackId: r.callbackId }]);
       setCtx(r.ctx ?? {});
     } catch {
       setMsgs((m) => [...m, { role: "bot", text: "I couldn't connect just now. Please call or WhatsApp us on **+92 332 2142141**.", actions: [{ label: "Call +92 332 2142141", href: "tel:+923322142141", kind: "call" }] }]);
@@ -166,6 +167,7 @@ export function ChatWidget() {
                       ))}
                     </div>
                   ) : null}
+                  {m.callbackId && <Callback id={m.callbackId} />}
                 </div>
               </div>
             ))}
@@ -196,5 +198,28 @@ export function ChatWidget() {
         </section>
       )}
     </>
+  );
+}
+
+/** Lets the visitor leave a WhatsApp number so staff can answer from the Inbox. */
+function Callback({ id }: { id: string }) {
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [state, setState] = useState<"idle" | "busy" | "done" | string>("idle");
+  if (state === "done") return <p className="pt-1 text-xs text-trust">✓ Got it — our team will WhatsApp you soon.</p>;
+  return (
+    <form className="space-y-1.5 pt-2" onSubmit={async (e) => {
+      e.preventDefault(); setState("busy");
+      const r = await chatCallbackAction(id, name, phone).catch(() => ({ ok: false as const, error: "Please try again." }));
+      setState(r.ok ? "done" : r.error);
+    }}>
+      <p className="text-xs text-ink-3">Or leave your number and we&apos;ll reply on WhatsApp:</p>
+      <div className="flex gap-1.5">
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" className="input h-9 min-w-0 flex-1 text-xs" />
+        <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="03XX XXXXXXX" inputMode="tel" required className="input h-9 min-w-0 flex-1 text-xs" />
+        <button className="btn btn-primary btn-sm h-9" disabled={state === "busy"}>Send</button>
+      </div>
+      {state !== "idle" && state !== "busy" && <p className="text-xs text-danger">{state}</p>}
+    </form>
   );
 }

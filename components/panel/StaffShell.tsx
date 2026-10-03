@@ -12,10 +12,12 @@ import { redirect } from "next/navigation";
 const NAV: { href: string; label: string; icon: typeof Gauge; perm?: string; group: string }[] = [
   { href: "/panel", label: "Cockpit", icon: Gauge, group: "Run" },
   { href: "/panel/pos", label: "POS", icon: ShoppingCart, perm: "pos.sell", group: "Run" },
+  { href: "/panel/receipts", label: "Receipts", icon: ReceiptText, perm: "pos.sell", group: "Run" },
   { href: "/panel/orders", label: "Online orders", icon: Truck, perm: "orders.view", group: "Run" },
   { href: "/panel/repairs", label: "Repairs", icon: Wrench, perm: "repairs.view", group: "Run" },
   { href: "/panel/inbox", label: "Inbox", icon: Inbox, perm: "inbox.manage", group: "Run" },
   { href: "/panel/inventory", label: "Inventory", icon: Boxes, perm: "inventory.view", group: "Stock" },
+  { href: "/panel/inventory/products", label: "Products", icon: Boxes, perm: "inventory.view", group: "Stock" },
   { href: "/panel/inventory/receive", label: "Receive goods", icon: ClipboardList, perm: "inventory.receive", group: "Stock" },
   { href: "/panel/trade", label: "Trade accounts", icon: Store, perm: "trade.manage", group: "Stock" },
   { href: "/panel/closing", label: "Daily closing", icon: ReceiptText, perm: "pos.drawer", group: "Money" },
