@@ -23,7 +23,7 @@ export async function Header() {
         className="sticky top-0 z-30 border-b border-line backdrop-blur-xl"
         style={{ background: "color-mix(in srgb, var(--bg) 82%, transparent)" }}
       >
-        <div className="mx-auto flex h-16 max-w-7xl items-center gap-4 px-4">
+        <div className="mx-auto flex h-16 max-w-7xl items-center gap-2 px-3 sm:gap-4 sm:px-4">
           <Link href="/" className="shrink-0" aria-label="StarTech Electronics home">
             <Logo />
           </Link>
@@ -40,11 +40,16 @@ export async function Header() {
               <input name="q" className="input h-10 pl-9 text-sm" placeholder={t("search", lang)} />
             </label>
           </form>
-          <div className="ml-auto flex items-center gap-1 lg:ml-0">
+          <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1 lg:ml-0">
             <PrefsToggles lang={lang} mode={mode} />
             <CartButton />
           </div>
         </div>
+        <nav className="flex gap-1 overflow-x-auto border-t border-line px-3 py-1.5 text-sm text-ink-2 md:hidden [scrollbar-width:none] [mask-image:linear-gradient(90deg,#000_85%,transparent)]" aria-label="Main (mobile)">
+          {[["/shop", t("shop", lang)], ["/repair", t("repair", lang)], ["/verify", t("verify", lang)], ["/track", t("track", lang)], ["/trade/apply", t("trade", lang)]].map(([href, label]) => (
+            <Link key={href} href={href} className="shrink-0 rounded-lg px-3 py-1.5 hover:bg-surface-2 hover:text-ink">{label}</Link>
+          ))}
+        </nav>
         <DeviceBar />
       </header>
     </>

@@ -10,3 +10,11 @@ export const LAYERS = [
 
 export type HeroMode = "auto" | "exploded" | "assembled";
 export type LayerCounts = Partial<Record<string, number>>;
+
+// Flagship phone finishes (iPhone 17 Pro Max–style colours).
+export const PHONE_COLORS = {
+  "cosmic-orange": { label: "Cosmic Orange", body: "#D9692B", plateau: "#E07734", frame: "#C9612A" },
+  "deep-blue": { label: "Deep Blue", body: "#2B3A55", plateau: "#33456A", frame: "#24324A" },
+  silver: { label: "Silver", body: "#D7D9DC", plateau: "#E3E5E8", frame: "#BFC3C8" },
+} as const;
+export type PhoneColor = keyof typeof PHONE_COLORS;

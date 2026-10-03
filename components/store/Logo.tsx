@@ -9,7 +9,7 @@ export function Logo({ compact = false }: { compact?: boolean }) {
       {!compact && (
         <span className="leading-none">
           <span className="block font-display text-[1.05rem] font-bold tracking-[-0.03em]">StarTech</span>
-          <span className="block font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-3">Electronics · Since 2003</span>
+          <span className="block font-mono text-[9.5px] uppercase tracking-[0.18em] text-ink-3"><span className="hidden min-[400px]:inline">Electronics · </span>Since 2003</span>
         </span>
       )}
     </span>

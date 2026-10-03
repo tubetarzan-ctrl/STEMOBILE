@@ -5,7 +5,7 @@ import { Layers, Rotate3d, Sparkles } from "lucide-react";
 import type { HeroSettings } from "@/lib/data/types";
 import { AutoVideo } from "@/components/media/AutoVideo";
 import { CssPhone, PosterPhone } from "./CssPhone";
-import type { HeroMode, LayerCounts } from "./layers";
+import { PHONE_COLORS, type HeroMode, type LayerCounts, type PhoneColor } from "./layers";
 import { cn } from "@/lib/utils";
 
 // 3D bundle is code-split and only requested after first paint on capable GPUs.
@@ -16,6 +16,7 @@ type Tier = "poster" | "css" | "webgl";
 export function HeroStage({ hero, counts }: { hero: HeroSettings; counts: LayerCounts }) {
   const [tier, setTier] = useState<Tier>("css");
   const [mode, setMode] = useState<HeroMode>("auto");
+  const [color, setColor] = useState<PhoneColor>("cosmic-orange");
   const [explode, setExplode] = useState(0.15);
   const [onScreen, setOnScreen] = useState(true);
   const [isDesktop, setIsDesktop] = useState(false);
@@ -101,13 +102,20 @@ export function HeroStage({ hero, counts }: { hero: HeroSettings; counts: LayerC
     <div ref={stage} className="relative h-[420px] w-full sm:h-[520px] lg:h-[600px]">
       {/* spotlight + ground glow */}
       <div aria-hidden className="pointer-events-none absolute inset-0" style={{ background: "radial-gradient(40% 45% at 50% 40%, color-mix(in srgb, var(--accent) 16%, transparent), transparent 70%)" }} />
-      {tier === "poster" && <PosterPhone counts={counts} />}
-      {tier === "css" && <CssPhone explode={explode} counts={counts} animate={mode === "auto"} showLabels />}
+      {tier === "poster" && <PosterPhone counts={counts} color={color} />}
+      {tier === "css" && <CssPhone explode={explode} counts={counts} animate={mode === "auto"} showLabels color={color} />}
       {tier === "webgl" && (
         <div className="absolute inset-0">
-          <PhoneScene explode={explodeRef} counts={counts} videoSrc={videoSrc} active={onScreen} showLabels={isDesktop} />
+          <PhoneScene explode={explodeRef} counts={counts} videoSrc={videoSrc} active={onScreen} showLabels={isDesktop} color={color} />
         </div>
       )}
+      <div className="absolute right-2 top-2 flex items-center gap-1.5 rounded-full border border-line bg-surface-1/80 px-2 py-1.5 backdrop-blur" role="group" aria-label="Phone colour">
+        {(Object.keys(PHONE_COLORS) as PhoneColor[]).map((k) => (
+          <button key={k} type="button" onClick={() => setColor(k)} aria-pressed={color === k} title={PHONE_COLORS[k].label} aria-label={PHONE_COLORS[k].label}
+            className={cn("size-5 rounded-full border-2 transition-transform hover:scale-110", color === k ? "border-accent" : "border-transparent")}
+            style={{ background: `linear-gradient(135deg, ${PHONE_COLORS[k].plateau}, ${PHONE_COLORS[k].body})` }} />
+        ))}
+      </div>
       {tier !== "poster" && (
         <div className="absolute bottom-2 left-1/2 flex -translate-x-1/2 gap-1 rounded-full border border-line bg-surface-1/80 p-1 backdrop-blur" role="group" aria-label="3D view">
           {([["auto", "Auto", Sparkles], ["exploded", "Exploded", Layers], ["assembled", "Assembled", Rotate3d]] as const).map(([m, label, Icon]) => (

@@ -19,7 +19,7 @@ export function TiltCard({ children, className }: { children: React.ReactNode; c
       }}
       onPointerLeave={() => { if (ref.current) ref.current.style.transform = ""; }}
       className={cn(
-        "card relative overflow-hidden transition-[transform,border-color,box-shadow] duration-300 ease-[var(--ease)] hover:border-accent/50",
+        "group card relative overflow-hidden transition-[transform,border-color,box-shadow] duration-300 ease-[var(--ease)] hover:border-accent/50",
         "before:pointer-events-none before:absolute before:inset-0 before:opacity-0 before:transition-opacity hover:before:opacity-100",
         "before:[background:radial-gradient(240px_circle_at_var(--mx,50%)_var(--my,50%),color-mix(in_srgb,var(--accent)_14%,transparent),transparent_70%)]",
         className,

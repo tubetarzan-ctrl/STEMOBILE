@@ -8,6 +8,7 @@ import { whatsappLink } from "@/lib/utils";
 import { FitFinder } from "@/components/store/FitFinder";
 import { ProductCard } from "@/components/store/ProductCard";
 import { PartGlyph } from "@/components/store/PartGlyph";
+import { BENCH, categoryImage, storyImages } from "@/lib/data/stock";
 import { GradeBadge } from "@/components/ui/badges";
 import { HeroStage } from "@/components/hero/HeroStage";
 import type { HeroSettings, BusinessSettings } from "@/lib/data/types";
@@ -128,12 +129,20 @@ function CategoryGrid({ d, ctx }: { d: D; ctx: HomeContext }) {
       <div className="grid auto-rows-[160px] grid-cols-2 gap-4 md:grid-cols-4">
         {cats.map((c, i) => (
           <TiltCard key={c.id} className={i === 0 ? "col-span-2 row-span-2" : i === 3 ? "md:col-span-2" : ""}>
-            <Link href={`/shop?category=${c.slug}`} className="relative flex h-full flex-col justify-between p-5">
-              <span className="font-mono text-[11px] uppercase tracking-[0.14em] text-ink-3">{c.kind === "part" ? "Genuine parts" : c.kind === "tool" ? "For technicians" : "Accessories"}</span>
-              <PartGlyph kind={c.slug} className={`absolute right-4 top-1/2 -translate-y-1/2 text-ink-3/70 ${i === 0 ? "w-40" : "w-20"}`} />
+            <Link href={`/shop?category=${c.slug}`} className="relative flex h-full flex-col justify-between overflow-hidden p-4 sm:p-5">
+              {categoryImage(c.slug) ? (
+                <>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={categoryImage(c.slug)!.src} alt="" loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                  <span aria-hidden className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/35 to-black/10" />
+                </>
+              ) : (
+                <PartGlyph kind={c.slug} className={`absolute right-4 top-1/2 -translate-y-1/2 text-ink-3/70 ${i === 0 ? "w-40" : "w-20"}`} />
+              )}
+              <span className="relative w-fit rounded-full bg-black/45 px-2 py-0.5 font-mono text-[10px] uppercase tracking-[0.14em] text-white/85 backdrop-blur-sm">{c.kind === "part" ? "Genuine parts" : c.kind === "tool" ? "For technicians" : "Accessories"}</span>
               <span className="relative">
-                <span lang={ctx.lang} className="block font-display text-xl font-semibold">{ctx.lang === "ur" && c.name_ur ? c.name_ur : c.name}</span>
-                {ctx.counts[c.slug] ? <span className="text-sm text-ink-3">{ctx.counts[c.slug]} products</span> : null}
+                <span lang={ctx.lang} className="block font-display text-lg font-semibold text-white sm:text-xl">{ctx.lang === "ur" && c.name_ur ? c.name_ur : c.name}</span>
+                {ctx.counts[c.slug] ? <span className="text-xs text-white/75 sm:text-sm">{ctx.counts[c.slug]} products</span> : null}
               </span>
             </Link>
           </TiltCard>
@@ -175,10 +184,10 @@ function CaseStudies({ d, ctx }: { d: D; ctx: HomeContext }) {
     <Wrap>
       <SectionHead eyebrow="Case studies" title={pick(d, "title", ctx.lang)} sub={pick(d, "subtitle", ctx.lang)} lang={ctx.lang} />
       <div className="grid gap-4 md:grid-cols-3">
-        {ctx.stories.slice(0, 3).map((s) => (
+        {ctx.stories.slice(0, 3).map((s, si) => (
           <article key={s.id} className="card flex flex-col overflow-hidden">
             <div className="grid grid-cols-2 gap-px bg-line">
-              {[["Before", s.before_url], ["After", s.after_url]].map(([label, url]) => (
+              {[["Before", s.before_url ?? storyImages(si).before?.src], ["After", s.after_url ?? storyImages(si).after?.src]].map(([label, url]) => (
                 <div key={label} className="relative aspect-square bg-surface-2">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   {url ? <img src={url} alt={`${s.device_label} ${label?.toLowerCase()}`} className="size-full object-cover" loading="lazy" /> : <PartGlyph kind="displays" className="mx-auto mt-6 w-1/2 text-ink-3/50" />}
@@ -267,10 +276,16 @@ function Portfolio({ d, ctx }: { d: D; ctx: HomeContext }) {
         <ReelStrip reels={ctx.reels} />
       ) : (
         <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-          {["Screen swap · iPhone 13", "Battery · Galaxy A54", "Port clean · Redmi Note 12", "Back glass · iPhone 14"].map((t, i) => (
-            <div key={t} className="card relative aspect-[4/5] overflow-hidden">
-              <div className="absolute inset-0 grid place-items-center bg-surface-2"><PartGlyph kind={["displays", "batteries", "charging-ports", "back-glass"][i]} className="w-1/3 text-ink-3/50" /></div>
-              <span className="absolute bottom-3 left-3 badge bg-surface-1/80">{t}</span>
+          {BENCH.map((b, i) => (
+            <div key={b.key} className="card group relative aspect-[4/5] overflow-hidden">
+              {b.img ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={b.img.src} alt={b.img.alt} loading="lazy" className="absolute inset-0 size-full object-cover transition-transform duration-500 group-hover:scale-105" />
+              ) : (
+                <div className="absolute inset-0 grid place-items-center bg-surface-2"><PartGlyph kind={["displays", "batteries", "charging-ports", "back-glass"][i]} className="w-1/3 text-ink-3/50" /></div>
+              )}
+              <span aria-hidden className="absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-black/70 to-transparent" />
+              <span className="absolute bottom-3 left-3 right-3 text-sm font-medium text-white">{b.label}</span>
             </div>
           ))}
         </div>

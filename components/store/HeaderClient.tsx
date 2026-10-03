@@ -7,7 +7,7 @@ import { useCart } from "@/lib/client/stores";
 export function CartButton() {
   const { count } = useCart();
   return (
-    <Link href="/cart" className="relative grid size-10 place-items-center rounded-xl border border-line hover:bg-surface-2" aria-label={`Cart, ${count} items`}>
+    <Link href="/cart" className="relative grid size-9 place-items-center rounded-xl border border-line hover:bg-surface-2 sm:size-10" aria-label={`Cart, ${count} items`}>
       <ShoppingBag className="size-[18px]" />
       {count > 0 && (
         <span className="absolute -right-1.5 -top-1.5 grid min-w-5 place-items-center rounded-full bg-accent px-1 text-[11px] font-bold text-accent-ink tabular">
@@ -28,7 +28,7 @@ export function PrefsToggles({ lang, mode }: { lang: "en" | "ur"; mode: "light" 
     <div className="flex items-center gap-1">
       <button
         type="button"
-        className="grid size-10 place-items-center rounded-xl text-ink-2 hover:bg-surface-2 hover:text-ink"
+        className="grid size-9 place-items-center rounded-xl text-ink-2 hover:bg-surface-2 hover:text-ink sm:size-10"
         aria-label={lang === "ur" ? "Switch to English" : "اردو میں دیکھیں"}
         onClick={() => { setCookie("st_lang", lang === "ur" ? "en" : "ur"); router.refresh(); }}
       >
@@ -36,7 +36,7 @@ export function PrefsToggles({ lang, mode }: { lang: "en" | "ur"; mode: "light" 
       </button>
       <button
         type="button"
-        className="grid size-10 place-items-center rounded-xl text-ink-2 hover:bg-surface-2 hover:text-ink"
+        className="grid size-9 place-items-center rounded-xl text-ink-2 hover:bg-surface-2 hover:text-ink sm:size-10"
         aria-label={mode === "light" ? "Switch to dark theme" : "Switch to light theme"}
         onClick={() => { setCookie("st_mode", mode === "light" ? "dark" : "light"); router.refresh(); }}
       >

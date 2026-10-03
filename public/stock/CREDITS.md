@@ -1,0 +1,27 @@
+# Stock photo credits
+
+Free-to-use photos (Pexels / Pixabay licences). Replace with real shop photos any time.
+
+- `cat-displays`: Detailed image of a cracked smartphone screen highlighting damage to the device. — energepic.com on Pexels (https://www.pexels.com/photo/close-up-photo-of-iphone-tempered-glass-288479/)
+- `cat-batteries`: Two smartphones charging side by side on a desk. Modern and technological setting. — Steve A Johnson on Pexels (https://www.pexels.com/photo/closed-up-photography-of-two-iphones-1028674/)
+- `cat-back-glass`: Close-up of two smartphones showcasing triple camera technology in modern design. — Md Imran on Pexels (https://www.pexels.com/photo/white-and-gray-mobile-phones-8125085/)
+- `cat-charging-ports`: Detailed close-up of a smartphone's USB-C charging port and speaker grille, showcasing modern technology design. — Prashant pacific on Pexels (https://www.pexels.com/photo/close-up-of-smartphone-usb-c-port-and-speaker-grille-32932370/)
+- `cat-cameras`: Detailed close-up of a modern smartphone camera against a dark background. — Jatin Jangid on Pexels (https://www.pexels.com/photo/close-up-of-modern-smartphone-camera-on-black-background-5243203/)
+- `cat-cases`: Colorful and decorative phone cases in various patterns and designs. — Burst on Pexels (https://www.pexels.com/photo/assorted-color-smartphone-cases-374140/)
+- `cat-screen-protectors`: Close-up of hands holding a smartphone showing a mountain scene, captured outdoors in Banff. — Line Knipst on Pexels (https://www.pexels.com/photo/man-holding-a-smart-phone-with-a-photo-18160079/)
+- `cat-chargers`: Close-up of USB-C and adaptors on a marble surface, highlighting modern electronics essentials. — ready made on Pexels (https://www.pexels.com/photo/adapters-and-type-c-cable-3921630/)
+- `cat-cables`: Minimalist image of a power bank with blue USB charging cables on a white background. — Markus Winkler on Pexels (https://www.pexels.com/photo/white-power-bank-and-blue-coated-wires-4072683/)
+- `cat-audio`: Minimalist black wireless earbuds on a bright yellow backdrop for tech and lifestyle themes. — Andrey Matveev on Pexels (https://www.pexels.com/photo/black-wireless-earbuds-on-yellow-background-33797659/)
+- `cat-power-banks`: Smartphone charging with a power bank on a wooden desk, showcasing modern technology essentials. — Towfiqu barbhuiya on Pexels (https://www.pexels.com/photo/a-smartphone-charging-with-a-power-bank-14706040/)
+- `cat-tools`: A detailed view of a technician using a soldering iron on a circuit board through a magnifying glass. — https://kaboompics.com/ on Pexels (https://www.pexels.com/photo/repairing-of-circuit-board-7286009/)
+- `bench-1`: Focused Asian woman repairing smartphone indoors in a workshop setting. — Miracle Mr on Pexels (https://www.pexels.com/photo/a-woman-repairing-a-smartphone-10568286/)
+- `bench-2`: Detailed view of a tech repair workspace with tools and electronics parts. — Eden FC on Pexels (https://www.pexels.com/photo/close-up-of-electronics-repair-workbench-36027861/)
+- `bench-3`: Detailed image of hands soldering and repairing an electronic circuit board. — Bulat843 🌙 on Pexels (https://www.pexels.com/photo/close-up-of-hands-repairing-circuit-board-with-precision-37340089/)
+- `bench-4`: A close-up view of soldering and electronic repair tools on a wooden workbench. — cottonbro studio on Pexels (https://www.pexels.com/photo/black-and-silver-scissors-beside-brown-round-coins-4709389/)
+- `story-after-1`: Aerial shot of multiple smartphone models on wooden table, showcasing camera designs. — Phong Thanh on Pexels (https://www.pexels.com/photo/collection-of-mobile-phones-on-wooden-surface-36680544/)
+- `story-after-2`: Abstract smartphone display with colorful geometric paper background, capturing modern technology themes. — Atharva Whaval on Pexels (https://www.pexels.com/photo/abstract-art-with-smart-phone-9403817/)
+- `repair-hero`: Close-up of disassembled smartphone parts on a blue repair mat with tools. — Fotografia Lui Vlad on Pexels (https://www.pexels.com/photo/disassembled-smartphone-on-repair-workbench-31862950/)
+- `story-before-1`: Two broken smartphone screens on an orange background, illustrating device fragility. — Towfiqu barbhuiya on Pexels (https://www.pexels.com/photo/cracked-screen-of-a-smartphone-11921157/)
+- `story-before-2`: A cracked smartphone screen on a repair mat highlights technology mishaps. — Fotografia Lui Vlad on Pexels (https://www.pexels.com/photo/close-up-of-a-broken-smartphone-on-blue-background-31884550/)
+- `story-before-3`: A detailed close-up of a smartphone charging port on a textured surface. — Masood Aslami on Pexels (https://www.pexels.com/photo/smart-phone-on-a-table-18662753/)
+- `story-after-3`: Three smartphones connected to chargers on a wooden surface, showcasing modern technology — Stanley Ng on Pexels (https://www.pexels.com/photo/black-android-smartphones-on-brown-wooden-surface-4387770/)

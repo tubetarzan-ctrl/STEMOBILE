@@ -12,7 +12,9 @@
     "test:watch": "vitest",
     "db:test": "node scripts/db-check.mjs",
     "db:reset": "npx supabase db reset",
-    "owner:create": "node scripts/create-owner.mjs"
+    "owner:create": "node scripts/create-owner.mjs",
+    "stock:fetch": "node scripts/fetch-stock.mjs",
+    "mobile:check": "node scripts/mobile-check.mjs"
   },
   "dependencies": {
     "@react-pdf/renderer": "^4.9.0",
@@ -48,6 +50,7 @@
     "@types/three": "^0.186.0",
     "eslint": "^9",
     "eslint-config-next": "15.5.27",
+    "sharp": "^0.35.5",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.3"

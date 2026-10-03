@@ -7,6 +7,7 @@ import { getActiveDevice } from "@/lib/device-cookie";
 import { gradeLabel } from "@/lib/grades";
 import { ProductCard } from "@/components/store/ProductCard";
 import { PartGlyph } from "@/components/store/PartGlyph";
+import { categoryImage } from "@/lib/data/stock";
 import { VariantPicker } from "./VariantPicker";
 
 type Params = Promise<{ slug: string }>;
@@ -55,7 +56,10 @@ export default async function ProductPage({ params }: { params: Params }) {
             {product.images[0]
               // eslint-disable-next-line @next/next/no-img-element
               ? <img src={product.images[0].url} alt={product.images[0].alt ?? product.name} className="size-full object-cover" />
-              : <PartGlyph kind={product.category.slug} className="w-1/2 text-ink-3" />}
+              : categoryImage(product.category.slug)
+                // eslint-disable-next-line @next/next/no-img-element
+                ? <img src={categoryImage(product.category.slug)!.src} alt={product.name} className="size-full object-cover" />
+                : <PartGlyph kind={product.category.slug} className="w-1/2 text-ink-3" />}
           </div>
           {product.images.length > 1 && (
             <div className="grid grid-cols-5 gap-2">

@@ -34,7 +34,7 @@ export function FitBadge({ fit, device }: { fit: Fit; device?: string }) {
 
 export function Price({ paisa, className, from }: { paisa: number; className?: string; from?: boolean }) {
   return (
-    <span className={cn("money font-display font-semibold", className)}>
+    <span className={cn("money whitespace-nowrap font-display font-semibold", className)}>
       {from && <span className="text-ink-3 text-xs font-sans font-normal mr-1">from</span>}
       {formatPKR(paisa)}
     </span>
